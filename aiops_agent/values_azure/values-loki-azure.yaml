@@ -1,0 +1,10 @@
+loki:
+  storage:
+    type: azure
+    bucketNames:
+      chunks: lokichunks123456
+      ruler: lokiruler123456
+      admin: lokiadmin123456
+    azure:
+      useFederatedToken: true
+      userAssignedId: <UAMI_CLIENT_ID> # 如果你用 user-assigned MI；system-assigned 可不填

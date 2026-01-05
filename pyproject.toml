@@ -1,0 +1,21 @@
+
+
+[project]
+name = "aiops-agent"
+version = "0.1.0"
+description = "Python AIOps agent for AKS (Prometheus + Loki + GitOps)"
+requires-python = ">=3.11"
+
+dependencies = [
+  "requests>=2.32",
+  "pydantic>=2.8",
+  "python-dateutil>=2.9",
+  "typer>=0.12",
+  "rich>=13.7",
+]
+
+[project.scripts]
+aiops = "aiops_agent.cli:main"
+
+[tool.uv]
+package = true
