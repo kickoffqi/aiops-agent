@@ -1,43 +1,89 @@
-#System Variables to exported to your local environment
+# aiops-agent (Python)
+
+Python AIOps agent for AKS-style environments using **Prometheus + Loki**.
+
+It generates a small **incident context report** by querying:
+- Prometheus: basic namespace health signals (pod restarts, running pods)
+- Loki: recent error logs for a namespace/app label
+
+Outputs:
+- A JSON report for audit/replay
+- A terminal summary rendered with `rich`
+
+## Requirements
+
+- Python >= 3.11
+- [`uv`](https://github.com/astral-sh/uv) (recommended)
+- Access to Prometheus and Loki HTTP APIs (commonly via `kubectl port-forward`)
+
+## Install
+
+```bash
+uv sync --reinstall
+```
+
+## Configuration
+
+The CLI reads settings from environment variables (with defaults):
+
+```bash
 export PROM_URL="http://localhost:9090"
 export LOKI_URL="http://localhost:3100"
 export NAMESPACE="default"
 export APP_LABEL="flask-demo"
 export LOOKBACK_MIN="15"
 
-#Demo application for K8s
-aiops-agent-python/test/flask_demo.yaml
+# optional auth (for future/secured endpoints)
+export BEARER_TOKEN="..."      # optional
+export BASIC_USER="..."        # optional
+export BASIC_PASS="..."        # optional
+```
 
+## Usage
 
-#Install Prometheus
-    #Create monitorying namespace
-    kubectl create ns monitoring
+Generate an incident report:
 
-    #Add Helm lib
-    helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-    helm repo add grafana https://grafana.github.io/helm-charts
-    helm repo update
+```bash
+uv run aiops incident --out incident_report.json
+cat incident_report.json
+```
 
-    #Install kube-prometheus-stack
-    helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-        -n monitoring
+## Kubernetes demo app
 
-    #Check pods for Prometheus
-    kubectl -n monitoring get pods
-        •	prometheus
-        •	alertmanager
-        •	grafana
-        •	node-exporter
-        •	kube-state-metrics
+This repo includes a tiny Flask app that:
+- exposes Prometheus metrics at `/metrics`
+- emits an ERROR log at `/error` (useful for Loki ingestion)
 
-    #Prometheus port-forward
-    kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+Apply it:
 
-    #Check Prometheus
-    http://localhost:9090
+```bash
+kubectl apply -f test/flask_demo.yaml
+```
 
+## Observability stack (Prometheus + Loki)
 
-#Install Loki && Using local filesyste for storage
+The included `Manual.MD` shows one way to install these via Helm.
+
+### Prometheus (kube-prometheus-stack)
+
+```bash
+kubectl create ns monitoring
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack -n monitoring
+
+kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090
+```
+
+Verify:
+
+- http://localhost:9090
+
+### Loki (loki-stack + promtail)
+
+```bash
 helm repo add grafana https://grafana.github.io/helm-charts
 helm repo update
 
@@ -47,30 +93,24 @@ helm upgrade --install loki grafana/loki-stack \
   --set promtail.enabled=true \
   --set grafana.enabled=false
 
-#Check Loki pods and svc
 kubectl -n monitoring get pods | egrep "loki|promtail"
 kubectl -n monitoring get svc | egrep "loki"
 
-#Loki port-forward
 kubectl -n monitoring port-forward svc/loki 3100:3100
-
-#Check Loki url
 curl -s http://localhost:3100/ready && echo
+```
 
-#How To Run(Using UV)
+## What the agent queries
 
-find . -name "__pycache__" -type d -exec rm -rf {} +
-uv sync --reinstall
-uv run aiops incident --out incident_report.json
-uv run aiops --out incident_report.json
-uv run aiops incident --out incident_report.json
-cat incident_report.json
+- Prometheus (instant queries):
+  - container restarts (lookback window)
+  - running pods in the namespace
+- Loki (range query):
+  - `{namespace="...", app="..."} |~ "(?i)error"` (samples up to 20 recent lines)
 
+## Development notes
 
-uv run aiops incident --out incident_report.json
+- CLI entrypoint: `aiops_agent/cli.py` (Typer)
+- Settings: `aiops_agent/config.py`
+- Collectors: `aiops_agent/collector/prometheus.py`, `aiops_agent/collector/loki.py`
 
-#Azure K8s login clis
-az account show
-az aks list -o table
-az aks get-credentials -g rg-aks-platform-dev -n aks-platform-dev --overwrite-existing
-kubectl get ns
