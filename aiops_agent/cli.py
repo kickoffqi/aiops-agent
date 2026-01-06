@@ -8,6 +8,8 @@ from .report import print_report, save_json
 from .prometheus_client import PrometheusClient
 from .collector.prometheus import collect_namespace_health
 from .collector.loki import collect_error_logs
+from .analyzer.triage import triage_incident
+from .gitops.patches import generate_gitops_patches, dump_patches_yaml
 
 app = typer.Typer(
     add_completion=False,
@@ -26,6 +28,7 @@ def _root() -> None:
 def incident(
     out: str = typer.Option("incident_report.json", help="Output JSON file"),
     quiet: bool = typer.Option(False, "--quiet", help="Do not print report to terminal"),
+    emit_patch: str | None = typer.Option(None, "--emit-patch", help="Write GitOps remediation patch YAML to this file"),
 ):
     settings = load_settings()
 
@@ -63,7 +66,18 @@ def incident(
         ctx.summary["loki_error"] = str(e)
         ctx.summary["error_log_count"] = None
 
+    # Analyze / triage
+    triage_incident(ctx)
 
+    # Emit GitOps patch if requested
+    if emit_patch:
+        patches = generate_gitops_patches(ctx)
+        patch_yaml = dump_patches_yaml(patches)
+        with open(emit_patch, "w", encoding="utf-8") as f:
+            f.write(patch_yaml)
+        ctx.summary["gitops_patch_file"] = emit_patch
+
+    # Save report JSON
     save_json(ctx, out)
     if not quiet:
         print_report(ctx)
