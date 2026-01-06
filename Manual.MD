@@ -58,9 +58,10 @@ kubectl -n monitoring port-forward svc/loki 3100:3100
 curl -s http://localhost:3100/ready && echo
 
 #How To Run(Using UV)
-
+export LOOKBACK_MIN="120"
 find . -name "__pycache__" -type d -exec rm -rf {} +
 uv sync --reinstall
+uv run aiops incident --out incident_report.json --emit-patch remediation.yaml
 uv run aiops incident --out incident_report.json
 uv run aiops --out incident_report.json
 uv run aiops incident --out incident_report.json
@@ -74,3 +75,10 @@ az account show
 az aks list -o table
 az aks get-credentials -g rg-aks-platform-dev -n aks-platform-dev --overwrite-existing
 kubectl get ns
+
+
+#how to upload .tar 
+cd aiops-agent-python
+tar --exclude='.venv' --exclude='__pycache__' --exclude='*.log' \
+    --exclude='aiops-agent-python.tgz' \
+    -czf aiops-agent-python.tgz .

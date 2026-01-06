@@ -58,6 +58,24 @@ def collect_namespace_health(settings: Settings) -> Tuple[Dict[str, Any], Dict[s
     promql_running_pods = (
         f'count(kube_pod_status_phase{{namespace="{settings.namespace}", phase="Running"}} == 1)'
     )
+    
+    promql_crashloop = (
+        f'sum(kube_pod_container_status_waiting_reason{{namespace="{settings.namespace}", reason="CrashLoopBackOff"}})'
+    )
+    crashloop_resp = prom.query(promql_crashloop)
+
+    crashloop = PromQueryResult(
+        query=promql_crashloop,
+        response=crashloop_resp,
+        scalar=_first_scalar(crashloop_resp),
+    )
+
+    prom_queries["crashloop_backoff"] = {
+        "query": crashloop.query,
+        "response": crashloop.response,
+        "scalar": crashloop.scalar,
+    }
+    summary["crashloop_backoff"] = crashloop.scalar
 
     restarts_resp = prom.query(promql_restarts)
     running_resp = prom.query(promql_running_pods)

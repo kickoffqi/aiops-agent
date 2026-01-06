@@ -29,6 +29,8 @@ def print_report(ctx: IncidentContext) -> None:
     error_logs = ctx.loki_queries.get("error_logs", {})
     rows = error_logs.get("rows", [])
 
+
+
     if rows:
         table = Table(title="Recent ERROR logs (sample)", show_lines=True)
         table.add_column("timestamp")

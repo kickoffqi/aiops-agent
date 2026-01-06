@@ -32,44 +32,80 @@ def query_loki(settings: Settings, logql: str, limit: int = 20) -> Dict[str, Any
     r.raise_for_status()
     return r.json()
 
+def query_loki_instant(settings: Settings, logql: str) -> Dict[str, Any]:
+    """
+    Instant query: returns a single value at 'now' (good for aggregations like sum(count_over_time(...))).
+    """
+    url = f"{settings.loki_url}/loki/api/v1/query"
+    params = {"query": logql}
+    r = requests.get(url, params=params, timeout=15)
+    r.raise_for_status()
+    return r.json()
 
+def _first_scalar(resp: Dict[str, Any]) -> Optional[float]:
+    """
+    Loki instant query returns:
+    data.resultType = "vector"
+    data.result[0].value = [ <ts>, "<number>" ]
+    """
+    try:
+        result = resp.get("data", {}).get("result", [])
+        if not result:
+            return 0.0
+        value = result[0].get("value", [])
+        if len(value) < 2:
+            return 0.0
+        return float(value[1])
+    except Exception:
+        return None
+    
 def collect_error_logs(settings: Settings) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
-    Collect recent error logs for the namespace.
-    Returns:
-      loki_queries: dict
-      summary: dict
+    Collect recent error logs (samples) and an estimated total count over lookback window.
     """
     selector = _ns_app_error_selector(settings)
 
-    # 最简单：找包含 "error" / "ERROR" 的日志
-    logql = f'{selector} |~ "(?i)error"'
+    # A) 样本查询：拿最近 N 条 ERROR（用于报告展示）
+    sample_logql = f'{selector} |~ "(?i)error"'
+    sample_resp = query_loki(settings, sample_logql, limit=50)
 
-    resp = query_loki(settings, logql, limit=50)
-
-    # 解析返回，抽取若干行样本
     rows = []
     try:
-        results = resp.get("data", {}).get("result", [])
+        results = sample_resp.get("data", {}).get("result", [])
         for stream in results:
             for ts, line in stream.get("values", []):
                 rows.append({"ts": ts, "line": line})
     except Exception:
         rows = []
 
-    # 最新在前（BACKWARD 通常已是新→旧，但这里再保险排序）
     rows = sorted(rows, key=lambda x: x["ts"], reverse=True)
+
+    # B) 统计查询：算 lookback window 内 ERROR 的总量（不受 limit 影响）
+    # 注意：count_over_time 需要 range selector，所以用 [{lookback}m]
+    count_logql = (
+        f'sum(count_over_time({selector} |~ "(?i)error" [{settings.lookback_minutes}m]))'
+    )
+    count_resp = query_loki_instant(settings, count_logql)
+    error_count = _first_scalar(count_resp)
 
     loki_queries = {
         "error_logs": {
-            "query": logql,
-            "response": resp,
+            "query": sample_logql,
+            "response": sample_resp,
             "rows": rows[:20],  # 报告里最多放 20 行样本
-        }
+        },
+        "error_logs_count": {
+            "query": count_logql,
+            "response": count_resp,
+            "scalar": error_count,
+        },
     }
 
     summary = {
-        "error_log_count": len(rows),
+        # 真正的统计（面试/告警更有意义）
+        "error_log_count": error_count if error_count is not None else 0.0,
+        # 样本数量（用于解释“为什么 rows 只有 20/50”）
+        "error_log_sample_count": len(rows),
     }
 
     return loki_queries, summary
