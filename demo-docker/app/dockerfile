@@ -1,0 +1,21 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application
+COPY main.py .
+
+RUN pip install --no-cache-dir flask gunicorn prometheus_client
+
+EXPOSE 8080
+
+ENV LOG_LEVEL=INFO
+
+# IMPORTANT:
+# Gunicorn is PID 1, so if CRASH_ON_START=1 triggers sys.exit,
+# the container will exit -> Kubernetes CrashLoopBackOff
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "--workers", "1", "--threads", "4", "main:app"]

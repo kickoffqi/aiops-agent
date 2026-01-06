@@ -58,7 +58,7 @@ kubectl -n monitoring port-forward svc/loki 3100:3100
 curl -s http://localhost:3100/ready && echo
 
 #How To Run(Using UV)
-export LOOKBACK_MIN="120"
+export LOOKBACK_MIN="300"
 find . -name "__pycache__" -type d -exec rm -rf {} +
 uv sync --reinstall
 uv run aiops incident --out incident_report.json --emit-patch remediation.yaml
@@ -67,7 +67,9 @@ uv run aiops --out incident_report.json
 uv run aiops incident --out incident_report.json
 cat incident_report.json
 
-
+export LOOKBACK_MIN="5"
+find . -name "__pycache__" -type d -exec rm -rf {} +
+uv sync --reinstall
 uv run aiops incident --out incident_report.json
 
 #Azure K8s login clis

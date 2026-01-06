@@ -87,7 +87,13 @@ def triage_incident(ctx: IncidentContext) -> Dict[str, Any]:
     # Rule-based classification (v1)
     if error_log_count_n and error_log_count_n > 0:
         # errors exist
-        if pod_restarts_n is not None and pod_restarts_n > 0:
+        if (
+            (pod_restarts_n is not None and pod_restarts_n > 0)
+            and (crashloop_backoff_n is not None and crashloop_backoff_n > 0)
+        ):
+            suspected_category = "crashloop"
+            triage = "CrashLoopBackOff detected (metrics + restarts + logs); container is repeatedly failing to start."
+        elif pod_restarts_n is not None and pod_restarts_n > 0:
             suspected_category = "crashloop_or_instability"
             triage = "Errors detected and pod restarts increased; likely crash-loop or unstable process."
             recs += [
@@ -138,12 +144,31 @@ def triage_incident(ctx: IncidentContext) -> Dict[str, Any]:
                 "Add readinessProbe that depends on critical dependencies, so traffic is held until ready",
             ]
         elif top_error_type == "crashloop":
-            triage = "Logs indicate crash on start / immediate exit; expect CrashLoopBackOff."
-            recs = [
-                "Inspect container command/env; remove crash flags; check missing files/secrets",
-                "Check events and exit codes; add liveness/readiness probes carefully",
-                "Roll back last deployment if needed (GitOps revert)",
-            ]
+            # Distinguish app-level crash vs Kubernetes CrashLoopBackOff
+            if pod_restarts_n is not None and pod_restarts_n > 0:
+                suspected_category = "crashloop"
+                triage = (
+                    "Logs indicate crash on start and container restarts are increasing; "
+                    "this matches Kubernetes CrashLoopBackOff."
+                )
+                recs = [
+                    "Check container logs and previous logs: kubectl logs --previous -l app=<app>",
+                    "Inspect pod events and termination reasons: kubectl describe pod; kubectl get events --sort-by=.lastTimestamp",
+                    "Validate startup config/secrets and command/args; roll back last change if needed (GitOps revert)",
+                ]
+            else:
+                suspected_category = "app_crash"
+                triage = (
+                    "Logs indicate crash on start / immediate exit, but no container restarts were observed "
+                    "in the lookback window. This suggests an application-level process crash "
+                    "(not a Kubernetes CrashLoopBackOff)."
+                )
+                recs = [
+                    "Inspect application startup code and exit conditions (e.g., sys.exit, fatal exceptions)",
+                    "Check environment variables, config files, and secrets consumed by the app",
+                    "Reproduce locally or in a debug pod; add structured startup logs and health checks",
+                    "Avoid over-aggressive liveness probes that may hide app-level failures",
+                ]
         elif top_error_type == "memory":
             triage = "Logs suggest memory pressure or allocation issues."
             recs = [
