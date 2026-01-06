@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-01-06T07:54:22.532375Z",
+  "generated_at": "2026-01-06T08:54:03.806134Z",
   "lookback_minutes": 5,
   "namespace": "default",
   "app_label": "flask-demo",
@@ -25,7 +25,7 @@
             {
               "metric": {},
               "value": [
-                1767686062.808,
+                1767689644.056,
                 "0"
               ]
             }
@@ -44,7 +44,7 @@
             {
               "metric": {},
               "value": [
-                1767686062.887,
+                1767689644.142,
                 "3"
               ]
             }
@@ -64,33 +64,37 @@
           "result": [
             {
               "stream": {
-                "job": "default/flask-demo",
-                "namespace": "default",
                 "node_name": "aks-user1-61511158-vmss00000d",
                 "pod": "flask-demo-b4fcfc7b9-gnpmr",
                 "stream": "stderr",
                 "app": "flask-demo",
                 "container": "flask-demo",
-                "filename": "/var/log/pods/default_flask-demo-b4fcfc7b9-gnpmr_d301807d-fa9a-4843-bc7e-e38f30475836/flask-demo/0.log"
+                "filename": "/var/log/pods/default_flask-demo-b4fcfc7b9-gnpmr_d301807d-fa9a-4843-bc7e-e38f30475836/flask-demo/0.log",
+                "job": "default/flask-demo",
+                "namespace": "default"
               },
               "values": [
                 [
-                  "1767686053809760952",
-                  "2026-01-06 07:54:13,809 ERROR flask-demo {\"event\":\"request\",\"path\":\"/config\",\"error_type\":\"config\",\"msg\":\"Missing REQUIRED_TOKEN env var\"}"
+                  "1767689637878703712",
+                  "2026-01-06 08:53:57,878 ERROR flask-demo {\"event\":\"request\",\"path\":\"/config\",\"error_type\":\"config\",\"msg\":\"Missing REQUIRED_TOKEN env var\"}"
+                ],
+                [
+                  "1767689546155963045",
+                  "2026-01-06 08:52:26,155 ERROR flask-demo {\"event\":\"request\",\"path\":\"/config\",\"error_type\":\"config\",\"msg\":\"Missing REQUIRED_TOKEN env var\"}"
                 ]
               ]
             }
           ],
           "stats": {
             "summary": {
-              "bytesProcessedPerSecond": 5989,
-              "linesProcessedPerSecond": 43,
-              "totalBytesProcessed": 138,
-              "totalLinesProcessed": 1,
-              "execTime": 0.023041733,
-              "queueTime": 0.020256004,
+              "bytesProcessedPerSecond": 13118,
+              "linesProcessedPerSecond": 95,
+              "totalBytesProcessed": 276,
+              "totalLinesProcessed": 2,
+              "execTime": 0.021039273,
+              "queueTime": 0.015954429,
               "subqueries": 17,
-              "totalEntriesReturned": 1
+              "totalEntriesReturned": 2
             },
             "querier": {
               "store": {
@@ -111,14 +115,14 @@
               "totalReached": 16,
               "totalChunksMatched": 1,
               "totalBatches": 1,
-              "totalLinesSent": 1,
+              "totalLinesSent": 2,
               "store": {
                 "totalChunksRef": 0,
                 "totalChunksDownloaded": 0,
                 "chunksDownloadTime": 0,
                 "chunk": {
-                  "headChunkBytes": 138,
-                  "headChunkLines": 1,
+                  "headChunkBytes": 276,
+                  "headChunkLines": 2,
                   "decompressedBytes": 0,
                   "decompressedLines": 0,
                   "compressedBytes": 0,
@@ -131,8 +135,12 @@
       },
       "rows": [
         {
-          "ts": "1767686053809760952",
-          "line": "2026-01-06 07:54:13,809 ERROR flask-demo {\"event\":\"request\",\"path\":\"/config\",\"error_type\":\"config\",\"msg\":\"Missing REQUIRED_TOKEN env var\"}"
+          "ts": "1767689637878703712",
+          "line": "2026-01-06 08:53:57,878 ERROR flask-demo {\"event\":\"request\",\"path\":\"/config\",\"error_type\":\"config\",\"msg\":\"Missing REQUIRED_TOKEN env var\"}"
+        },
+        {
+          "ts": "1767689546155963045",
+          "line": "2026-01-06 08:52:26,155 ERROR flask-demo {\"event\":\"request\",\"path\":\"/config\",\"error_type\":\"config\",\"msg\":\"Missing REQUIRED_TOKEN env var\"}"
         }
       ]
     },
@@ -146,19 +154,19 @@
             {
               "metric": {},
               "value": [
-                1767686063.144,
-                "1"
+                1767689644.39,
+                "2"
               ]
             }
           ],
           "stats": {
             "summary": {
-              "bytesProcessedPerSecond": 3968,
-              "linesProcessedPerSecond": 28,
-              "totalBytesProcessed": 138,
-              "totalLinesProcessed": 1,
-              "execTime": 0.034775652,
-              "queueTime": 0.057827285,
+              "bytesProcessedPerSecond": 10434,
+              "linesProcessedPerSecond": 75,
+              "totalBytesProcessed": 276,
+              "totalLinesProcessed": 2,
+              "execTime": 0.026451917,
+              "queueTime": 0.048811001,
               "subqueries": 17,
               "totalEntriesReturned": 1
             },
@@ -181,14 +189,14 @@
               "totalReached": 16,
               "totalChunksMatched": 1,
               "totalBatches": 1,
-              "totalLinesSent": 1,
+              "totalLinesSent": 2,
               "store": {
                 "totalChunksRef": 0,
                 "totalChunksDownloaded": 0,
                 "chunksDownloadTime": 0,
                 "chunk": {
-                  "headChunkBytes": 138,
-                  "headChunkLines": 1,
+                  "headChunkBytes": 276,
+                  "headChunkLines": 2,
                   "decompressedBytes": 0,
                   "decompressedLines": 0,
                   "compressedBytes": 0,
@@ -199,7 +207,7 @@
           }
         }
       },
-      "scalar": 1
+      "scalar": 2
     }
   },
   "summary": {
@@ -210,13 +218,13 @@
     "prometheus_status": "ok",
     "restarts_signal_missing": false,
     "running_pods": 3,
-    "error_log_count": 1,
-    "error_log_sample_count": 1,
+    "error_log_count": 2,
+    "error_log_sample_count": 2,
     "loki_status": "ok",
     "suspected_category": "config",
     "top_error_type": "config",
     "error_type_counts": {
-      "config": 1
+      "config": 2
     },
     "severity": "low",
     "confidence": "medium",
