@@ -19,3 +19,17 @@ spec:
             port: 8080
           initialDelaySeconds: 20
           periodSeconds: 10
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flask-demo
+spec:
+  template:
+    spec:
+      containers:
+      - name: flask-demo
+        env:
+        - name: CRASH_ON_START
+          value: '0'

@@ -5,6 +5,6 @@ def _num(x: Any) -> Optional[float]:
     if x is None:
         return None
     try:
-        return float(x)
+        return int(x)
     except (TypeError, ValueError):
         return None

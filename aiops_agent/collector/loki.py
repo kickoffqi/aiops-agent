@@ -58,6 +58,15 @@ def _first_scalar(resp: Dict[str, Any]) -> Optional[float]:
         return float(value[1])
     except Exception:
         return None
+
+
+def _first_int(resp: Dict[str, Any]) -> Optional[int]:
+    v = _first_scalar(resp)
+    if v is None:
+        return None
+    if v.is_integer():
+        return int(v)
+    return int(round(v))
     
 def collect_error_logs(settings: Settings) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
@@ -86,7 +95,7 @@ def collect_error_logs(settings: Settings) -> Tuple[Dict[str, Any], Dict[str, An
         f'sum(count_over_time({selector} |~ "(?i)error" [{settings.lookback_minutes}m]))'
     )
     count_resp = query_loki_instant(settings, count_logql)
-    error_count = _first_scalar(count_resp)
+    error_count = _first_int(count_resp)
 
     loki_queries = {
         "error_logs": {
@@ -103,7 +112,7 @@ def collect_error_logs(settings: Settings) -> Tuple[Dict[str, Any], Dict[str, An
 
     summary = {
         # 真正的统计（面试/告警更有意义）
-        "error_log_count": error_count if error_count is not None else 0.0,
+        "error_log_count": error_count if error_count is not None else 0,
         # 样本数量（用于解释“为什么 rows 只有 20/50”）
         "error_log_sample_count": len(rows),
     }

@@ -1,9 +1,59 @@
 {
-  "generated_at": "2026-01-06T00:12:25.006636Z",
-  "lookback_minutes": 120,
+  "generated_at": "2026-01-06T05:07:35.391234Z",
+  "lookback_minutes": 300,
   "namespace": "default",
   "app_label": "flask-demo",
-  "prom_queries": {},
+  "prom_queries": {
+    "crashloop_backoff": {
+      "query": "sum(kube_pod_container_status_waiting_reason{namespace=\"default\", reason=\"CrashLoopBackOff\"})",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": []
+        }
+      },
+      "scalar": null
+    },
+    "pod_restarts_total": {
+      "query": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"default\", pod=~\"flask-demo-.*\", container=\"flask-demo\"}[300m]))",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1767676055.66,
+                "0"
+              ]
+            }
+          ]
+        }
+      },
+      "scalar": 0.0
+    },
+    "running_pods": {
+      "query": "count(kube_pod_status_phase{namespace=\"default\", phase=\"Running\"} == 1)",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1767676055.751,
+                "3"
+              ]
+            }
+          ]
+        }
+      },
+      "scalar": 3.0
+    }
+  },
   "loki_queries": {
     "error_logs": {
       "query": "{namespace=\"default\", app=\"flask-demo\"} |~ \"(?i)error\"",
@@ -14,228 +64,228 @@
           "result": [
             {
               "stream": {
-                "filename": "/var/log/pods/default_flask-demo-69bb8b7f55-l8frq_f9d579cc-3506-455a-a51b-3521ad88ee2b/flask-demo/1.log",
+                "stream": "stderr",
+                "app": "flask-demo",
+                "container": "flask-demo",
+                "filename": "/var/log/pods/default_flask-demo-69bb8b7f55-wjb2j_49923108-e731-46b8-ae72-cee53e3d1fbe/flask-demo/0.log",
                 "job": "default/flask-demo",
                 "namespace": "default",
                 "node_name": "aks-user1-61511158-vmss00000d",
-                "pod": "flask-demo-69bb8b7f55-l8frq",
-                "stream": "stderr",
-                "app": "flask-demo",
-                "container": "flask-demo"
+                "pod": "flask-demo-69bb8b7f55-wjb2j"
               },
               "values": [
                 [
-                  "1767655120686129498",
-                  "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:55) exited with code 42."
+                  "1767667218703691469",
+                  "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:73) exited with code 42."
                 ],
                 [
-                  "1767655120685945096",
-                  "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:55) exited with code 42"
+                  "1767667218703641268",
+                  "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:73) exited with code 42"
                 ],
                 [
-                  "1767655120537395336",
-                  "2026-01-05 23:18:40,537 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667218590044047",
+                  "2026-01-06 02:40:18,589 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655120199751291",
-                  "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:54) exited with code 42."
+                  "1767667218204553943",
+                  "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:72) exited with code 42."
                 ],
                 [
-                  "1767655120199506488",
-                  "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:54) exited with code 42"
+                  "1767667218204319441",
+                  "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:72) exited with code 42"
                 ],
                 [
-                  "1767655120085596192",
-                  "2026-01-05 23:18:40,085 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667218090464917",
+                  "2026-01-06 02:40:18,089 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655119619625499",
-                  "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:53) exited with code 42."
+                  "1767667217703626400",
+                  "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:71) exited with code 42."
                 ],
                 [
-                  "1767655119617947082",
-                  "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:53) exited with code 42"
+                  "1767667217703352397",
+                  "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:71) exited with code 42"
                 ],
                 [
-                  "1767655119428340791",
-                  "2026-01-05 23:18:39,428 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667217592381302",
+                  "2026-01-06 02:40:17,592 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655119081004944",
-                  "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:52) exited with code 42."
+                  "1767667217198994320",
+                  "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:70) exited with code 42."
                 ],
                 [
-                  "1767655119080942843",
-                  "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:52) exited with code 42"
+                  "1767667217198776618",
+                  "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:70) exited with code 42"
                 ],
                 [
-                  "1767655118917471327",
-                  "2026-01-05 23:18:38,917 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667217081313759",
+                  "2026-01-06 02:40:17,080 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655118586987656",
-                  "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:51) exited with code 42."
+                  "1767667216618687894",
+                  "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:69) exited with code 42."
                 ],
                 [
-                  "1767655118586934956",
-                  "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:51) exited with code 42"
+                  "1767667216618623193",
+                  "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:69) exited with code 42"
                 ],
                 [
-                  "1767655118428944297",
-                  "2026-01-05 23:18:38,428 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667216504149963",
+                  "2026-01-06 02:40:16,503 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655118088136418",
-                  "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:50) exited with code 42."
+                  "1767667216124072013",
+                  "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:68) exited with code 42."
                 ],
                 [
-                  "1767655118087971917",
-                  "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:50) exited with code 42"
+                  "1767667216123996812",
+                  "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:68) exited with code 42"
                 ],
                 [
-                  "1767655117981366697",
-                  "2026-01-05 23:18:37,981 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667216022147307",
+                  "2026-01-06 02:40:16,021 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655117513914889",
-                  "[2026-01-05 23:18:37 +0000] [1] [ERROR] Worker (pid:49) exited with code 42."
+                  "1767667215687611306",
+                  "[2026-01-06 02:40:15 +0000] [1] [ERROR] Worker (pid:67) exited with code 42."
                 ],
                 [
-                  "1767655117513866189",
-                  "[2026-01-05 23:18:37 +0000] [1] [ERROR] Worker (pid:49) exited with code 42"
+                  "1767667215687181601",
+                  "[2026-01-06 02:40:15 +0000] [1] [ERROR] Worker (pid:67) exited with code 42"
                 ],
                 [
-                  "1767655117385967246",
-                  "2026-01-05 23:18:37,385 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667215501819672",
+                  "2026-01-06 02:40:15,501 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655116917177323",
-                  "[2026-01-05 23:18:36 +0000] [1] [ERROR] Worker (pid:48) exited with code 42."
+                  "1767667215096998577",
+                  "[2026-01-06 02:40:15 +0000] [1] [ERROR] Worker (pid:66) exited with code 42."
                 ],
                 [
-                  "1767655116917021822",
-                  "[2026-01-05 23:18:36 +0000] [1] [ERROR] Worker (pid:48) exited with code 42"
+                  "1767667215096784075",
+                  "[2026-01-06 02:40:15 +0000] [1] [ERROR] Worker (pid:66) exited with code 42"
                 ],
                 [
-                  "1767655116790015688",
-                  "2026-01-05 23:18:36,789 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667214979015113",
+                  "2026-01-06 02:40:14,978 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655116421118515",
-                  "[2026-01-05 23:18:36 +0000] [1] [ERROR] Worker (pid:47) exited with code 42."
+                  "1767667214608652258",
+                  "[2026-01-06 02:40:14 +0000] [1] [ERROR] Worker (pid:65) exited with code 42."
                 ],
                 [
-                  "1767655116421037514",
-                  "[2026-01-05 23:18:36 +0000] [1] [ERROR] Worker (pid:47) exited with code 42"
+                  "1767667214608465256",
+                  "[2026-01-06 02:40:14 +0000] [1] [ERROR] Worker (pid:65) exited with code 42"
                 ],
                 [
-                  "1767655116312018769",
-                  "2026-01-05 23:18:36,311 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667214504161627",
+                  "2026-01-06 02:40:14,503 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655115984436929",
-                  "[2026-01-05 23:18:35 +0000] [1] [ERROR] Worker (pid:46) exited with code 42."
+                  "1767667214183452662",
+                  "[2026-01-06 02:40:14 +0000] [1] [ERROR] Worker (pid:64) exited with code 42."
                 ],
                 [
-                  "1767655115984391429",
-                  "[2026-01-05 23:18:35 +0000] [1] [ERROR] Worker (pid:46) exited with code 42"
+                  "1767667214183132259",
+                  "[2026-01-06 02:40:14 +0000] [1] [ERROR] Worker (pid:64) exited with code 42"
                 ],
                 [
-                  "1767655115805563051",
-                  "2026-01-05 23:18:35,805 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667214084226983",
+                  "2026-01-06 02:40:14,083 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655115320918562",
-                  "[2026-01-05 23:18:35 +0000] [1] [ERROR] Worker (pid:45) exited with code 42."
+                  "1767667213702107512",
+                  "[2026-01-06 02:40:13 +0000] [1] [ERROR] Worker (pid:63) exited with code 42."
                 ],
                 [
-                  "1767655115320789661",
-                  "[2026-01-05 23:18:35 +0000] [1] [ERROR] Worker (pid:45) exited with code 42"
+                  "1767667213702066912",
+                  "[2026-01-06 02:40:13 +0000] [1] [ERROR] Worker (pid:63) exited with code 42"
                 ],
                 [
-                  "1767655115235081961",
-                  "2026-01-05 23:18:35,234 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667213587964586",
+                  "2026-01-06 02:40:13,587 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655114754510515",
-                  "[2026-01-05 23:18:34 +0000] [1] [ERROR] Worker (pid:44) exited with code 42."
+                  "1767667213183589796",
+                  "[2026-01-06 02:40:13 +0000] [1] [ERROR] Worker (pid:62) exited with code 42."
                 ],
                 [
-                  "1767655114754444614",
-                  "[2026-01-05 23:18:34 +0000] [1] [ERROR] Worker (pid:44) exited with code 42"
+                  "1767667213183525195",
+                  "[2026-01-06 02:40:13 +0000] [1] [ERROR] Worker (pid:62) exited with code 42"
                 ],
                 [
-                  "1767655114584799233",
-                  "2026-01-05 23:18:34,584 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667213035559035",
+                  "2026-01-06 02:40:13,020 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655114182369707",
-                  "[2026-01-05 23:18:34 +0000] [1] [ERROR] Worker (pid:43) exited with code 42."
+                  "1767667212606315599",
+                  "[2026-01-06 02:40:12 +0000] [1] [ERROR] Worker (pid:61) exited with code 42."
                 ],
                 [
-                  "1767655114182258806",
-                  "[2026-01-05 23:18:34 +0000] [1] [ERROR] Worker (pid:43) exited with code 42"
+                  "1767667212606265198",
+                  "[2026-01-06 02:40:12 +0000] [1] [ERROR] Worker (pid:61) exited with code 42"
                 ],
                 [
-                  "1767655114023808643",
-                  "2026-01-05 23:18:34,023 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667212493674887",
+                  "2026-01-06 02:40:12,493 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655113682329857",
-                  "[2026-01-05 23:18:33 +0000] [1] [ERROR] Worker (pid:42) exited with code 42."
+                  "1767667212025018963",
+                  "[2026-01-06 02:40:12 +0000] [1] [ERROR] Worker (pid:60) exited with code 42."
                 ],
                 [
-                  "1767655113681517748",
-                  "[2026-01-05 23:18:33 +0000] [1] [ERROR] Worker (pid:42) exited with code 42"
+                  "1767667212024538058",
+                  "[2026-01-06 02:40:12 +0000] [1] [ERROR] Worker (pid:60) exited with code 42"
                 ],
                 [
-                  "1767655113485743793",
-                  "2026-01-05 23:18:33,485 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667211897228202",
+                  "2026-01-06 02:40:11,896 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655113082565140",
-                  "[2026-01-05 23:18:33 +0000] [1] [ERROR] Worker (pid:41) exited with code 42."
+                  "1767667211388133678",
+                  "[2026-01-06 02:40:11 +0000] [1] [ERROR] Worker (pid:59) exited with code 42."
                 ],
                 [
-                  "1767655113082483839",
-                  "[2026-01-05 23:18:33 +0000] [1] [ERROR] Worker (pid:41) exited with code 42"
+                  "1767667211388088777",
+                  "[2026-01-06 02:40:11 +0000] [1] [ERROR] Worker (pid:59) exited with code 42"
                 ],
                 [
-                  "1767655112915287988",
-                  "2026-01-05 23:18:32,914 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667211214019460",
+                  "2026-01-06 02:40:11,207 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655112585502436",
-                  "[2026-01-05 23:18:32 +0000] [1] [ERROR] Worker (pid:40) exited with code 42."
+                  "1767667210691977484",
+                  "[2026-01-06 02:40:10 +0000] [1] [ERROR] Worker (pid:58) exited with code 42."
                 ],
                 [
-                  "1767655112585291134",
-                  "[2026-01-05 23:18:32 +0000] [1] [ERROR] Worker (pid:40) exited with code 42"
+                  "1767667210691493579",
+                  "[2026-01-06 02:40:10 +0000] [1] [ERROR] Worker (pid:58) exited with code 42"
                 ],
                 [
-                  "1767655112428299095",
-                  "2026-01-05 23:18:32,427 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+                  "1767667210518785040",
+                  "2026-01-06 02:40:10,518 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
                 ],
                 [
-                  "1767655112079484133",
-                  "[2026-01-05 23:18:32 +0000] [1] [ERROR] Worker (pid:39) exited with code 42."
+                  "1767667210005998777",
+                  "[2026-01-06 02:40:10 +0000] [1] [ERROR] Worker (pid:57) exited with code 42."
                 ],
                 [
-                  "1767655112079442432",
-                  "[2026-01-05 23:18:32 +0000] [1] [ERROR] Worker (pid:39) exited with code 42"
+                  "1767667210005924976",
+                  "[2026-01-06 02:40:10 +0000] [1] [ERROR] Worker (pid:57) exited with code 42"
                 ]
               ]
             }
           ],
           "stats": {
             "summary": {
-              "bytesProcessedPerSecond": 494299,
-              "linesProcessedPerSecond": 4942,
-              "totalBytesProcessed": 55707,
-              "totalLinesProcessed": 557,
-              "execTime": 0.112698868,
-              "queueTime": 0.803023999,
-              "subqueries": 3,
+              "bytesProcessedPerSecond": 118303,
+              "linesProcessedPerSecond": 1169,
+              "totalBytesProcessed": 31270,
+              "totalLinesProcessed": 309,
+              "execTime": 0.264320369,
+              "queueTime": 2.341805069,
+              "subqueries": 6,
               "totalEntriesReturned": 50
             },
             "querier": {
@@ -254,20 +304,20 @@
               }
             },
             "ingester": {
-              "totalReached": 48,
+              "totalReached": 96,
               "totalChunksMatched": 0,
-              "totalBatches": 3,
-              "totalLinesSent": 101,
+              "totalBatches": 1,
+              "totalLinesSent": 50,
               "store": {
-                "totalChunksRef": 4,
-                "totalChunksDownloaded": 4,
-                "chunksDownloadTime": 2968427,
+                "totalChunksRef": 1,
+                "totalChunksDownloaded": 1,
+                "chunksDownloadTime": 983911,
                 "chunk": {
                   "headChunkBytes": 0,
                   "headChunkLines": 0,
-                  "decompressedBytes": 55707,
-                  "decompressedLines": 557,
-                  "compressedBytes": 8859,
+                  "decompressedBytes": 31270,
+                  "decompressedLines": 309,
+                  "compressedBytes": 4540,
                   "totalDuplicates": 0
                 }
               }
@@ -277,89 +327,89 @@
       },
       "rows": [
         {
-          "ts": "1767655120686129498",
-          "line": "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:55) exited with code 42."
+          "ts": "1767667218703691469",
+          "line": "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:73) exited with code 42."
         },
         {
-          "ts": "1767655120685945096",
-          "line": "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:55) exited with code 42"
+          "ts": "1767667218703641268",
+          "line": "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:73) exited with code 42"
         },
         {
-          "ts": "1767655120537395336",
-          "line": "2026-01-05 23:18:40,537 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+          "ts": "1767667218590044047",
+          "line": "2026-01-06 02:40:18,589 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
         },
         {
-          "ts": "1767655120199751291",
-          "line": "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:54) exited with code 42."
+          "ts": "1767667218204553943",
+          "line": "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:72) exited with code 42."
         },
         {
-          "ts": "1767655120199506488",
-          "line": "[2026-01-05 23:18:40 +0000] [1] [ERROR] Worker (pid:54) exited with code 42"
+          "ts": "1767667218204319441",
+          "line": "[2026-01-06 02:40:18 +0000] [1] [ERROR] Worker (pid:72) exited with code 42"
         },
         {
-          "ts": "1767655120085596192",
-          "line": "2026-01-05 23:18:40,085 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+          "ts": "1767667218090464917",
+          "line": "2026-01-06 02:40:18,089 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
         },
         {
-          "ts": "1767655119619625499",
-          "line": "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:53) exited with code 42."
+          "ts": "1767667217703626400",
+          "line": "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:71) exited with code 42."
         },
         {
-          "ts": "1767655119617947082",
-          "line": "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:53) exited with code 42"
+          "ts": "1767667217703352397",
+          "line": "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:71) exited with code 42"
         },
         {
-          "ts": "1767655119428340791",
-          "line": "2026-01-05 23:18:39,428 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+          "ts": "1767667217592381302",
+          "line": "2026-01-06 02:40:17,592 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
         },
         {
-          "ts": "1767655119081004944",
-          "line": "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:52) exited with code 42."
+          "ts": "1767667217198994320",
+          "line": "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:70) exited with code 42."
         },
         {
-          "ts": "1767655119080942843",
-          "line": "[2026-01-05 23:18:39 +0000] [1] [ERROR] Worker (pid:52) exited with code 42"
+          "ts": "1767667217198776618",
+          "line": "[2026-01-06 02:40:17 +0000] [1] [ERROR] Worker (pid:70) exited with code 42"
         },
         {
-          "ts": "1767655118917471327",
-          "line": "2026-01-05 23:18:38,917 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+          "ts": "1767667217081313759",
+          "line": "2026-01-06 02:40:17,080 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
         },
         {
-          "ts": "1767655118586987656",
-          "line": "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:51) exited with code 42."
+          "ts": "1767667216618687894",
+          "line": "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:69) exited with code 42."
         },
         {
-          "ts": "1767655118586934956",
-          "line": "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:51) exited with code 42"
+          "ts": "1767667216618623193",
+          "line": "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:69) exited with code 42"
         },
         {
-          "ts": "1767655118428944297",
-          "line": "2026-01-05 23:18:38,428 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+          "ts": "1767667216504149963",
+          "line": "2026-01-06 02:40:16,503 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
         },
         {
-          "ts": "1767655118088136418",
-          "line": "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:50) exited with code 42."
+          "ts": "1767667216124072013",
+          "line": "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:68) exited with code 42."
         },
         {
-          "ts": "1767655118087971917",
-          "line": "[2026-01-05 23:18:38 +0000] [1] [ERROR] Worker (pid:50) exited with code 42"
+          "ts": "1767667216123996812",
+          "line": "[2026-01-06 02:40:16 +0000] [1] [ERROR] Worker (pid:68) exited with code 42"
         },
         {
-          "ts": "1767655117981366697",
-          "line": "2026-01-05 23:18:37,981 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
+          "ts": "1767667216022147307",
+          "line": "2026-01-06 02:40:16,021 ERROR flask-demo {\"event\":\"startup\",\"error_type\":\"crashloop\",\"msg\":\"CRASH_ON_START=1, exiting now\"}"
         },
         {
-          "ts": "1767655117513914889",
-          "line": "[2026-01-05 23:18:37 +0000] [1] [ERROR] Worker (pid:49) exited with code 42."
+          "ts": "1767667215687611306",
+          "line": "[2026-01-06 02:40:15 +0000] [1] [ERROR] Worker (pid:67) exited with code 42."
         },
         {
-          "ts": "1767655117513866189",
-          "line": "[2026-01-05 23:18:37 +0000] [1] [ERROR] Worker (pid:49) exited with code 42"
+          "ts": "1767667215687181601",
+          "line": "[2026-01-06 02:40:15 +0000] [1] [ERROR] Worker (pid:67) exited with code 42"
         }
       ]
     },
     "error_logs_count": {
-      "query": "sum(count_over_time({namespace=\"default\", app=\"flask-demo\"} |~ \"(?i)error\" [120m]))",
+      "query": "sum(count_over_time({namespace=\"default\", app=\"flask-demo\"} |~ \"(?i)error\" [300m]))",
       "response": {
         "status": "success",
         "data": {
@@ -368,52 +418,52 @@
             {
               "metric": {},
               "value": [
-                1767658345.747,
-                "304"
+                1767676056.49,
+                "415"
               ]
             }
           ],
           "stats": {
             "summary": {
-              "bytesProcessedPerSecond": 545110,
-              "linesProcessedPerSecond": 5450,
-              "totalBytesProcessed": 55707,
-              "totalLinesProcessed": 557,
-              "execTime": 0.102193968,
-              "queueTime": 1.791319869,
-              "subqueries": 5,
+              "bytesProcessedPerSecond": 322228,
+              "linesProcessedPerSecond": 3229,
+              "totalBytesProcessed": 77936,
+              "totalLinesProcessed": 781,
+              "execTime": 0.241865508,
+              "queueTime": 4.087473526,
+              "subqueries": 11,
               "totalEntriesReturned": 1
             },
             "querier": {
               "store": {
-                "totalChunksRef": 0,
-                "totalChunksDownloaded": 0,
-                "chunksDownloadTime": 0,
+                "totalChunksRef": 5,
+                "totalChunksDownloaded": 5,
+                "chunksDownloadTime": 2154526,
                 "chunk": {
                   "headChunkBytes": 0,
                   "headChunkLines": 0,
-                  "decompressedBytes": 0,
-                  "decompressedLines": 0,
-                  "compressedBytes": 0,
+                  "decompressedBytes": 46666,
+                  "decompressedLines": 472,
+                  "compressedBytes": 8370,
                   "totalDuplicates": 0
                 }
               }
             },
             "ingester": {
-              "totalReached": 64,
+              "totalReached": 96,
               "totalChunksMatched": 0,
-              "totalBatches": 3,
-              "totalLinesSent": 304,
+              "totalBatches": 1,
+              "totalLinesSent": 180,
               "store": {
-                "totalChunksRef": 4,
-                "totalChunksDownloaded": 4,
-                "chunksDownloadTime": 391803,
+                "totalChunksRef": 1,
+                "totalChunksDownloaded": 1,
+                "chunksDownloadTime": 110701,
                 "chunk": {
                   "headChunkBytes": 0,
                   "headChunkLines": 0,
-                  "decompressedBytes": 55707,
-                  "decompressedLines": 557,
-                  "compressedBytes": 8859,
+                  "decompressedBytes": 31270,
+                  "decompressedLines": 309,
+                  "compressedBytes": 4540,
                   "totalDuplicates": 0
                 }
               }
@@ -421,27 +471,31 @@
           }
         }
       },
-      "scalar": 304.0
+      "scalar": 415.0
     }
   },
   "summary": {
     "status": "mvp",
     "note": "Next: query Prometheus/Loki and add correlation.",
-    "prometheus_status": "error",
-    "prometheus_error": "cannot access local variable 'prom_queries' where it is not associated with a value",
-    "error_log_count": 304.0,
+    "crashloop_backoff": null,
+    "pod_restarts_total": 0.0,
+    "prometheus_status": "ok",
+    "restarts_signal_missing": false,
+    "running_pods": 3.0,
+    "error_log_count": 415.0,
     "error_log_sample_count": 50,
     "loki_status": "ok",
-    "suspected_category": "crashloop",
+    "suspected_category": "app_crash",
     "top_error_type": "crashloop",
     "error_type_counts": {
       "crashloop": 6
     },
-    "triage": "Logs indicate crash on start / immediate exit; expect CrashLoopBackOff.",
+    "triage": "Logs indicate crash on start / immediate exit, but no container restarts were observed in the lookback window. This suggests an application-level process crash (not a Kubernetes CrashLoopBackOff).",
     "recommendations": [
-      "Inspect container command/env; remove crash flags; check missing files/secrets",
-      "Check events and exit codes; add liveness/readiness probes carefully",
-      "Roll back last deployment if needed (GitOps revert)"
+      "Inspect application startup code and exit conditions (e.g., sys.exit, fatal exceptions)",
+      "Check environment variables, config files, and secrets consumed by the app",
+      "Reproduce locally or in a debug pod; add structured startup logs and health checks",
+      "Avoid over-aggressive liveness probes that may hide app-level failures"
     ],
     "gitops_patch_file": "remediation.yaml"
   }
