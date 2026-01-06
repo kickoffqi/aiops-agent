@@ -13,6 +13,7 @@ aiops_agent.egg-info/entry_points.txt
 aiops_agent.egg-info/requires.txt
 aiops_agent.egg-info/top_level.txt
 aiops_agent/analyzer/triage.py
+aiops_agent/analyzer/triage_v2.py
 aiops_agent/analyzer/utlis.py
 aiops_agent/collector/__init__.py
 aiops_agent/collector/loki.py

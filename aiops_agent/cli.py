@@ -9,6 +9,7 @@ from .prometheus_client import PrometheusClient
 from .collector.prometheus import collect_namespace_health
 from .collector.loki import collect_error_logs
 from .analyzer.triage import triage_incident
+from .analyzer.triage_v2 import triage_incident_v2
 from .gitops.patches import generate_gitops_patches, dump_patches_yaml
 
 app = typer.Typer(
@@ -67,7 +68,7 @@ def incident(
         ctx.summary["error_log_count"] = None
 
     # Analyze / triage
-    triage_incident(ctx)
+    triage_incident_v2(ctx)
 
     # Emit GitOps patch if requested
     if emit_patch:
