@@ -1,6 +1,8 @@
 import typer
 
 from datetime import datetime, timezone
+
+from .analyzer.llm_enrich import enrich_with_llm
 from .config import load_settings
 from .incident import IncidentContext
 from .report import print_report, save_json
@@ -75,11 +77,16 @@ def incident(
 
     # Correlate Prometheus + Loki signals
     correlate_prom_loki(ctx, settings, top_n=5); 
+
     # Analyze / triage
     triage_incident_v2(ctx); 
     
     # Remediation suggestions
     remediation_v1(ctx, settings); 
+
+    # LLM enrichment
+    enrich_with_llm(ctx, settings)
+
     # Emit GitOps patch if requested
     if emit_patch:
         patches = generate_gitops_patches(ctx)

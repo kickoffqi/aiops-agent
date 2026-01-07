@@ -12,6 +12,9 @@ class Settings(BaseModel):
     bearer_token: str | None = Field(default=None)
     basic_user: str | None = Field(default=None)
     basic_pass: str | None = Field(default=None)
+    ollama_url: str = Field(default="http://localhost:11434")
+    ollama_model: str = Field(default="qwen2.5:7b-instruct")
+    llm_timeout: int = Field(default=60)
 
 
 def load_settings() -> Settings:
@@ -27,4 +30,7 @@ def load_settings() -> Settings:
         bearer_token=os.getenv("BEARER_TOKEN"),
         basic_user=os.getenv("BASIC_USER"),
         basic_pass=os.getenv("BASIC_PASS"),
+        ollama_url=os.getenv("OLLAMA_URL", "http://localhost:11434"),
+        ollama_model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
+        llm_timeout=int(os.getenv("LLM_TIMEOUT", "60")),
     )
