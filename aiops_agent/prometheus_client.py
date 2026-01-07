@@ -31,6 +31,7 @@ class PrometheusClient:
             auth=self.auth,
             timeout=self.timeout,
         )
+
         resp.raise_for_status()
         return resp.json()
 

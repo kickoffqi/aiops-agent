@@ -1,16 +1,17 @@
 import typer
 
 from datetime import datetime, timezone
-
 from .config import load_settings
 from .incident import IncidentContext
 from .report import print_report, save_json
 from .prometheus_client import PrometheusClient
-from .collector.prometheus import collect_namespace_health
+from .collector.prometheus_v2 import collect_namespace_health_v2
 from .collector.loki import collect_error_logs
 from .analyzer.triage import triage_incident
 from .analyzer.triage_v2 import triage_incident_v2
 from .gitops.patches import generate_gitops_patches, dump_patches_yaml
+from .analyzer.correlate import correlate_prom_loki
+from aiops_agent.analyzer.remediation_v1 import remediation_v1
 
 app = typer.Typer(
     add_completion=False,
@@ -45,9 +46,9 @@ def incident(
             "note": "Next: query Prometheus/Loki and add correlation.",
         },
     )
-    # 2) Prometheus: collect generic namespace signals
+    # Prometheus: collect generic namespace signals
     try:
-        prom_queries, prom_summary = collect_namespace_health(settings)
+        prom_queries, prom_summary = collect_namespace_health_v2(settings)
         ctx.prom_queries.update(prom_queries)
         ctx.summary.update(prom_summary)
         ctx.summary["prometheus_status"] = "ok"
@@ -66,10 +67,19 @@ def incident(
         ctx.summary["loki_status"] = "error"
         ctx.summary["loki_error"] = str(e)
         ctx.summary["error_log_count"] = None
+    
 
+    def _dbg(stage: str, ctx):
+        keys = sorted(list((ctx.summary or {}).keys()))
+        print(f"\n[DBG] after {stage}: summary keys ({len(keys)}): {keys}\n")
+
+    # Correlate Prometheus + Loki signals
+    correlate_prom_loki(ctx, settings, top_n=5); 
     # Analyze / triage
-    triage_incident_v2(ctx)
-
+    triage_incident_v2(ctx); 
+    
+    # Remediation suggestions
+    remediation_v1(ctx, settings); 
     # Emit GitOps patch if requested
     if emit_patch:
         patches = generate_gitops_patches(ctx)

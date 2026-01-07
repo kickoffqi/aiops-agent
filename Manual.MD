@@ -84,3 +84,20 @@ cd aiops-agent-python
 tar --exclude='.venv' --exclude='__pycache__' --exclude='*.log' \
     --exclude='aiops-agent-python.tgz' \
     -czf aiops-agent-python.tgz .
+
+#Using tmux to monitoring port-forward
+tmux new-session -d -s pf
+
+tmux send-keys -t pf 'kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090:9090' C-m
+tmux split-window -h -t pf
+tmux send-keys -t pf 'kubectl -n monitoring port-forward svc/kube-prometheus-stack-grafana 3000:80' C-m
+tmux split-window -v -t pf
+tmux send-keys -t pf 'kubectl -n monitoring port-forward svc/loki 3100:3100' C-m
+tmux split-window -v -t pf
+tmux send-keys -t pf 'kubectl -n default port-forward svc/flask-demo 8080:80' C-m
+
+tmux attach -t pf
+
+#Stop session in tmux
+tmux ls
+tmux kill-session -t session1

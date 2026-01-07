@@ -81,9 +81,21 @@ def collect_error_logs(settings: Settings) -> Tuple[Dict[str, Any], Dict[str, An
     rows = []
     try:
         results = sample_resp.get("data", {}).get("result", [])
-        for stream in results:
-            for ts, line in stream.get("values", []):
-                rows.append({"ts": ts, "line": line})
+        for item in results:
+            labels = item.get("stream", {}) or {}
+            pod = labels.get("pod")
+            container = labels.get("container")
+            namespace = labels.get("namespace")
+            app = labels.get("app")
+            for ts, line in item.get("values", []):
+                rows.append({
+                    "ts": ts,
+                    "line": line,
+                    "pod": pod,
+                    "container": container,
+                    "namespace": namespace,
+                    "app": app,
+                })
     except Exception:
         rows = []
 
