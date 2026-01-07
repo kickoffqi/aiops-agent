@@ -4,46 +4,129 @@ from typing import Any, Dict, List, Optional, Tuple
 from ..incident import IncidentContext
 from .utlis import _num
 
+print("[DBG] triage_incident_v2 called")
+
+def _iter_loki_lines_for_triage(ctx: IncidentContext, max_rows: int = 50) -> List[str]:
+    """
+    Prefer correlation.worst_pod samples, fallback to global loki error_logs rows.
+    Return a list of log lines (strings).
+    """
+    # 1) Prefer correlation worst_pod samples
+    try:
+        corr = (ctx.summary or {}).get("correlation") or {}
+        worst_pod = (ctx.summary or {}).get("worst_pod")
+        pods = corr.get("pods") or []
+        if worst_pod and isinstance(pods, list):
+            for p in pods:
+                if p.get("pod") == worst_pod:
+                    samples = p.get("loki_samples") or []
+                    lines = [s.get("line", "") for s in samples if isinstance(s, dict)]
+                    return [x for x in lines if isinstance(x, str)][:max_rows]
+    except Exception:
+        pass
+
+    # 2) Fallback: global rows
+    try:
+        rows = ctx.loki_queries.get("error_logs", {}).get("rows", [])  # type: ignore[assignment]
+        lines = [r.get("line", "") for r in rows if isinstance(r, dict)]
+        return [x for x in lines if isinstance(x, str)][:max_rows]
+    except Exception:
+        return []
+    
+
+def _corr_worst_pod_signals(ctx: IncidentContext) -> Dict[str, Optional[float]]:
+    """
+    Pull worst_pod Prom signals from ctx.summary["correlation"] if present.
+    Returns: { "worst_pod": str|None, "restarts": float|None, "crashloop": float|None }
+    """
+    s = ctx.summary or {}
+    corr = s.get("correlation") or {}
+    worst = s.get("worst_pod")
+
+    if not worst or not isinstance(corr, dict):
+        return {"worst_pod": None, "restarts": None, "crashloop": None}
+
+    pods = corr.get("pods") or []
+    if not isinstance(pods, list):
+        return {"worst_pod": worst, "restarts": None, "crashloop": None}
+
+    for p in pods:
+        if isinstance(p, dict) and p.get("pod") == worst:
+            return {
+                "worst_pod": worst,
+                "restarts": _num(p.get("prom_restarts_increase")),
+                "crashloop": _num(p.get("prom_crashloop_backoff")),
+            }
+
+    return {"worst_pod": worst, "restarts": None, "crashloop": None}
 
 # -------------------------
 # Log parsing & heuristics
 # -------------------------
-def _extract_error_types_from_loki(ctx: IncidentContext, max_rows: int = 50) -> List[str]:
+def _row_text(r: Dict[str, Any]) -> str:
+    # 兼容不同 collector 字段命名：line / log / message
+    for k in ("line", "log", "message", "msg"):
+        v = r.get(k)
+        if isinstance(v, str) and v.strip():
+            return v
+    return ""
+
+def _extract_json_obj_from_line(line: str) -> Optional[Dict[str, Any]]:
     """
-    Parse loki_queries.error_logs.rows[*].line and extract error_type from JSON logs, if present.
-    Falls back to keyword heuristics if not JSON.
+    兼容：'... ERROR xxx {json...}' 这种“行内 JSON”
     """
-    rows = []
+    if not line:
+        return None
+    start = line.find("{")
+    end = line.rfind("}")
+    if start == -1 or end == -1 or end <= start:
+        return None
+    blob = line[start : end + 1].strip()
+    if not (blob.startswith("{") and blob.endswith("}")):
+        return None
     try:
-        rows = ctx.loki_queries.get("error_logs", {}).get("rows", [])  # type: ignore[assignment]
+        obj = json.loads(blob)
+        return obj if isinstance(obj, dict) else None
+    except Exception:
+        return None
+
+def _extract_error_types_from_loki(ctx: IncidentContext, max_rows: int = 200) -> List[str]:
+    """
+    Parse Loki rows and extract error_type.
+    - 支持 line/log/message 字段
+    - 支持 行内 JSON
+    - 对 gunicorn / crashloop 关键字做 fallback
+    """
+    try:
+        rows = ctx.loki_queries.get("error_logs", {}).get("rows", []) or []
     except Exception:
         rows = []
 
     types: List[str] = []
     for r in rows[:max_rows]:
-        line = r.get("line", "")
-        s = line.strip()
-
-        # JSON structured logs
-        if s.startswith("{") and s.endswith("}"):
-            try:
-                obj = json.loads(s)
-                et = obj.get("error_type")
-                if isinstance(et, str) and et:
-                    types.append(et)
-                    continue
-            except Exception:
-                pass
-
-        # Fallback heuristics
+        line = _row_text(r)
         l = line.lower()
-        if "missing required_token" in l or "missing config" in l:
+
+        # 1) 优先：结构化 JSON（行内 JSON）
+        obj = _extract_json_obj_from_line(line)
+        if obj:
+            et = obj.get("error_type")
+            if isinstance(et, str) and et:
+                types.append(et)
+                continue
+
+        # 2) fallback heuristics（覆盖 gunicorn/crashloop）
+        if "missing required_token" in l or "missing required_token env var" in l or "missing config" in l:
             types.append("config")
-        elif "connect failed" in l or "dependency" in l:
+        elif "connect failed" in l or "timed out" in l or "connection refused" in l:
+            # 你的 /dep 会出现 timed out
             types.append("dependency")
         elif "crash_on_start" in l or "exiting now" in l or "crashloop" in l:
             types.append("crashloop")
-        elif "oom" in l or "memory" in l:
+        elif "worker failed to boot" in l or "exited with code 42" in l or "reason: worker failed to boot" in l:
+            # gunicorn 常见 crashloop 形态
+            types.append("crashloop")
+        elif "oom" in l or "oomkilled" in l or "memory" in l or "killed process" in l:
             types.append("memory")
         else:
             types.append("unknown")
@@ -114,12 +197,7 @@ def _confidence_from_signals(
 
 
 def _has_crashloop_signature(ctx: IncidentContext, max_rows: int = 50) -> bool:
-    rows = []
-    try:
-        rows = ctx.loki_queries.get("error_logs", {}).get("rows", [])
-    except Exception:
-        return False
-
+    lines = _iter_loki_lines_for_triage(ctx, max_rows=max_rows)
     patterns = [
         "crash_on_start=1",
         "exiting now",
@@ -127,53 +205,9 @@ def _has_crashloop_signature(ctx: IncidentContext, max_rows: int = 50) -> bool:
         "exited with code 42",
         "crashloopbackoff",
     ]
-
-    for r in rows[:max_rows]:
-        line = (r.get("line") or "").lower()
-        if any(p in line for p in patterns):
-            return True
-    return False
-
-
-def _confidence_from_signals(
-    has_logs: bool,
-    restarts: Optional[float],
-    crashloop_backoff: Optional[float],
-) -> str:
-    signals = 0
-    if has_logs:
-        signals += 1
-    if restarts is not None and restarts > 0:
-        signals += 1
-    if crashloop_backoff is not None and crashloop_backoff > 0:
-        signals += 1
-
-    if signals >= 3:
-        return "high"
-    if signals == 2:
-        return "medium"
-    if signals == 1:
-        return "low"
-    return "unknown"
-
-def _has_crashloop_signature(ctx: IncidentContext, max_rows: int = 50) -> bool:
-    rows = []
-    try:
-        rows = ctx.loki_queries.get("error_logs", {}).get("rows", [])
-    except Exception:
-        return False
-
-    patterns = [
-        "crash_on_start=1",
-        "exiting now",
-        "worker failed to boot",
-        "exited with code 42",
-        "crashloopbackoff",
-    ]
-
-    for r in rows[:max_rows]:
-        line = (r.get("line") or "").lower()
-        if any(p in line for p in patterns):
+    for line in lines:
+        l = (line or "").lower()
+        if any(p in l for p in patterns):
             return True
     return False
 
@@ -217,8 +251,18 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     # -------------------------
     # Expert Rules: CrashLoop
     # -------------------------
-    is_restarting = pod_restarts_n is not None and pod_restarts_n > 0
-    has_backoff = crashloop_backoff_n is not None and crashloop_backoff_n > 0
+    corr_sig = _corr_worst_pod_signals(ctx)
+    worst_pod = corr_sig["worst_pod"]
+    worst_restarts = corr_sig["restarts"]
+    worst_crashloop = corr_sig["crashloop"]
+
+    # prefer worst_pod signals if available, else fallback to global namespace signals
+    restarts_for_triage = worst_restarts if worst_restarts is not None else pod_restarts_n
+    crashloop_for_triage = worst_crashloop if worst_crashloop is not None else crashloop_backoff_n
+
+    is_restarting = restarts_for_triage is not None and restarts_for_triage > 0
+    has_backoff = crashloop_for_triage is not None and crashloop_for_triage > 0
+
     has_errors = error_log_count_n > 0
 
     crash_sig = _has_crashloop_signature(ctx)
@@ -305,6 +349,9 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
                 "Verify Prometheus is scraping kube-state-metrics and your targets",
             ]
 
+        
+
+
     # -------------------------
     # Severity & Confidence (finalize once)
     # -------------------------
@@ -339,6 +386,47 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
         severity = "none"
         confidence = "high"
 
+    dominance = (s.get("dominance_ratio") or 0.0)
+    if has_errors and dominance >= 0.6 and confidence in {"low", "unknown"}:
+        confidence = "medium"
+
+
+    # 5) dominance_ratio
+    total_err = sum(error_type_counts.values()) if error_type_counts else 0
+    dominance = 0.0
+    if total_err > 0 and top_error_type:
+        dominance = error_type_counts.get(top_error_type, 0) / total_err
+    
+
+
+    # 只用已识别的类型算 dominance（unknown 不算）
+    known_counts = {k: v for k, v in error_type_counts.items() if k != "unknown"}
+    total_known = sum(known_counts.values())
+    if total_known > 0 and top_error_type in known_counts:
+        dominance_ratio = known_counts[top_error_type] / total_known
+    else:
+        dominance_ratio = None
+
+    secondary_error_types = dict(known_counts)
+    if top_error_type in secondary_error_types:
+        secondary_error_types.pop(top_error_type, None)
+
+    corr = (ctx.summary or {}).get("correlation") or {}
+    pods = corr.get("pods") or []
+
+    dominance_ratio_pod = None
+    try:
+        counts = [float(p.get("loki_error_count", 0.0)) for p in pods]
+        total = sum(counts)
+        worst = max(counts) if counts else 0.0
+        if total > 0:
+            dominance_ratio_pod = worst / total
+    except Exception:
+        dominance_ratio_pod = None
+
+    # keep your existing dominance_ratio as sample-based
+    dominance_ratio_sample = dominance_ratio
+
     # -------------------------
     # Final Output
     # -------------------------
@@ -350,6 +438,11 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
         "confidence": confidence,
         "triage": triage,
         "recommendations": recs,
+        "dominance_ratio_sample": dominance_ratio_sample,
+        "dominance_ratio_pod": dominance_ratio_pod,
+        "secondary_error_types": secondary_error_types,
+        "worst_pod_restarts_increase": restarts_for_triage,
+        "worst_pod_crashloop_backoff": crashloop_for_triage,
     }
 
     ctx.summary.update(triage_obj)

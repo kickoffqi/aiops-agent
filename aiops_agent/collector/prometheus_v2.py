@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Tuple
 from ..prometheus_client import PrometheusClient
 from ..config import Settings
 
+print("[DBG] prometheus_v2 called")
 
 @dataclass
 class PromQueryResult:
@@ -99,9 +100,12 @@ def collect_namespace_health_v2(settings: Settings) -> Tuple[Dict[str, Any], Dic
     )
 
     promql_crashloop = (
-        f'sum(kube_pod_container_status_waiting_reason'
-        f'{{namespace="{settings.namespace}", pod=~"{settings.app_label}-.*", '
-        f'reason="CrashLoopBackOff"}})'
+        f'sum('
+        f'max_over_time('
+        f'kube_pod_container_status_waiting_reason{{namespace="{settings.namespace}", reason="CrashLoopBackOff"}}'
+        f'[{settings.lookback_minutes}m]'
+        f')'
+        f')'
     )
 
     # -------------------------
