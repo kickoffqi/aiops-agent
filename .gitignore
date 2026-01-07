@@ -1,4 +1,5 @@
 *.txt
 *.json
 *.log
-incident_report.json
+./incident_report.json
+./aiops-agent-python.tgz
