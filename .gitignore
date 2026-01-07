@@ -2,3 +2,6 @@
 *.json
 *.log
 incident_report.json
+aiops-agent-python.tgz
+remediation.yaml
+uv.lock
