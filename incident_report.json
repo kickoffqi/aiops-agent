@@ -1,22 +1,11 @@
 {
-  "generated_at": "2026-01-06T11:36:49.917693Z",
-  "lookback_minutes": 5,
+  "generated_at": "2026-01-07T03:28:53.816502Z",
+  "lookback_minutes": 120,
   "namespace": "default",
   "app_label": "flask-demo",
   "prom_queries": {
-    "crashloop_backoff": {
-      "query": "sum(kube_pod_container_status_waiting_reason{namespace=\"default\", reason=\"CrashLoopBackOff\"})",
-      "response": {
-        "status": "success",
-        "data": {
-          "resultType": "vector",
-          "result": []
-        }
-      },
-      "scalar": null
-    },
     "pod_restarts_total": {
-      "query": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"default\", pod=~\"flask-demo-.*\", container=\"flask-demo\"}[5m]))",
+      "query": "sum(increase(kube_pod_container_status_restarts_total{namespace=\"default\", pod=~\"flask-demo-.*\", container=\"flask-demo\"}[120m]))",
       "response": {
         "status": "success",
         "data": {
@@ -25,7 +14,7 @@
             {
               "metric": {},
               "value": [
-                1767699410.194,
+                1767756533.879,
                 "0"
               ]
             }
@@ -35,7 +24,7 @@
       "scalar": 0.0
     },
     "running_pods": {
-      "query": "count(kube_pod_status_phase{namespace=\"default\", phase=\"Running\"} == 1)",
+      "query": "count(kube_pod_status_phase{namespace=\"default\", pod=~\"flask-demo-.*\", phase=\"Running\"} == 1)",
       "response": {
         "status": "success",
         "data": {
@@ -44,7 +33,7 @@
             {
               "metric": {},
               "value": [
-                1767699410.267,
+                1767756533.949,
                 "1"
               ]
             }
@@ -52,6 +41,17 @@
         }
       },
       "scalar": 1.0
+    },
+    "crashloop_backoff": {
+      "query": "sum(kube_pod_container_status_waiting_reason{namespace=\"default\", pod=~\"flask-demo-.*\", reason=\"CrashLoopBackOff\"})",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": []
+        }
+      },
+      "scalar": null
     }
   },
   "loki_queries": {
@@ -61,17 +61,44 @@
         "status": "success",
         "data": {
           "resultType": "streams",
-          "result": [],
+          "result": [
+            {
+              "stream": {
+                "stream": "stderr",
+                "app": "flask-demo",
+                "container": "flask-demo",
+                "filename": "/var/log/pods/default_flask-demo-b4fcfc7b9-q72kd_615237e7-1bd3-4ed6-ba5e-17d127c2c0ac/flask-demo/0.log",
+                "job": "default/flask-demo",
+                "namespace": "default",
+                "node_name": "aks-user1-61511158-vmss00000i",
+                "pod": "flask-demo-b4fcfc7b9-q72kd"
+              },
+              "values": [
+                [
+                  "1767751745359007390",
+                  "2026-01-07 02:09:05,358 ERROR flask-demo {\"event\":\"request\",\"path\":\"/mem\",\"error_type\":\"memory\",\"msg\":\"allocated memory\",\"mb\":200}"
+                ],
+                [
+                  "1767751737660103077",
+                  "2026-01-07 02:08:57,659 ERROR flask-demo {\"event\":\"request\",\"path\":\"/dep\",\"error_type\":\"dependency\",\"host\":\"10.0.0.1\",\"port\":5432,\"msg\":\"connect failed\",\"err\":\"timed out\"}"
+                ],
+                [
+                  "1767751737363914802",
+                  "2026-01-07 02:08:57,363 ERROR flask-demo {\"event\":\"request\",\"path\":\"/dep\",\"error_type\":\"dependency\",\"host\":\"10.0.0.1\",\"port\":5432,\"msg\":\"connect failed\",\"err\":\"timed out\"}"
+                ]
+              ]
+            }
+          ],
           "stats": {
             "summary": {
-              "bytesProcessedPerSecond": 0,
-              "linesProcessedPerSecond": 0,
-              "totalBytesProcessed": 0,
-              "totalLinesProcessed": 0,
-              "execTime": 0.013855043,
-              "queueTime": 0.010112704,
-              "subqueries": 17,
-              "totalEntriesReturned": 0
+              "bytesProcessedPerSecond": 6035,
+              "linesProcessedPerSecond": 34,
+              "totalBytesProcessed": 532,
+              "totalLinesProcessed": 3,
+              "execTime": 0.088141788,
+              "queueTime": 1.342834387,
+              "subqueries": 5,
+              "totalEntriesReturned": 3
             },
             "querier": {
               "store": {
@@ -89,20 +116,20 @@
               }
             },
             "ingester": {
-              "totalReached": 16,
+              "totalReached": 80,
               "totalChunksMatched": 0,
-              "totalBatches": 0,
-              "totalLinesSent": 0,
+              "totalBatches": 1,
+              "totalLinesSent": 3,
               "store": {
-                "totalChunksRef": 0,
-                "totalChunksDownloaded": 0,
-                "chunksDownloadTime": 0,
+                "totalChunksRef": 1,
+                "totalChunksDownloaded": 1,
+                "chunksDownloadTime": 130801,
                 "chunk": {
                   "headChunkBytes": 0,
                   "headChunkLines": 0,
-                  "decompressedBytes": 0,
-                  "decompressedLines": 0,
-                  "compressedBytes": 0,
+                  "decompressedBytes": 532,
+                  "decompressedLines": 3,
+                  "compressedBytes": 259,
                   "totalDuplicates": 0
                 }
               }
@@ -110,25 +137,58 @@
           }
         }
       },
-      "rows": []
+      "rows": [
+        {
+          "ts": "1767751745359007390",
+          "line": "2026-01-07 02:09:05,358 ERROR flask-demo {\"event\":\"request\",\"path\":\"/mem\",\"error_type\":\"memory\",\"msg\":\"allocated memory\",\"mb\":200}",
+          "pod": "flask-demo-b4fcfc7b9-q72kd",
+          "container": "flask-demo",
+          "namespace": "default",
+          "app": "flask-demo"
+        },
+        {
+          "ts": "1767751737660103077",
+          "line": "2026-01-07 02:08:57,659 ERROR flask-demo {\"event\":\"request\",\"path\":\"/dep\",\"error_type\":\"dependency\",\"host\":\"10.0.0.1\",\"port\":5432,\"msg\":\"connect failed\",\"err\":\"timed out\"}",
+          "pod": "flask-demo-b4fcfc7b9-q72kd",
+          "container": "flask-demo",
+          "namespace": "default",
+          "app": "flask-demo"
+        },
+        {
+          "ts": "1767751737363914802",
+          "line": "2026-01-07 02:08:57,363 ERROR flask-demo {\"event\":\"request\",\"path\":\"/dep\",\"error_type\":\"dependency\",\"host\":\"10.0.0.1\",\"port\":5432,\"msg\":\"connect failed\",\"err\":\"timed out\"}",
+          "pod": "flask-demo-b4fcfc7b9-q72kd",
+          "container": "flask-demo",
+          "namespace": "default",
+          "app": "flask-demo"
+        }
+      ]
     },
     "error_logs_count": {
-      "query": "sum(count_over_time({namespace=\"default\", app=\"flask-demo\"} |~ \"(?i)error\" [5m]))",
+      "query": "sum(count_over_time({namespace=\"default\", app=\"flask-demo\"} |~ \"(?i)error\" [120m]))",
       "response": {
         "status": "success",
         "data": {
           "resultType": "vector",
-          "result": [],
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1767756534.283,
+                "3"
+              ]
+            }
+          ],
           "stats": {
             "summary": {
-              "bytesProcessedPerSecond": 0,
-              "linesProcessedPerSecond": 0,
-              "totalBytesProcessed": 0,
-              "totalLinesProcessed": 0,
-              "execTime": 0.028184491,
-              "queueTime": 0.040371915,
-              "subqueries": 17,
-              "totalEntriesReturned": 0
+              "bytesProcessedPerSecond": 8618,
+              "linesProcessedPerSecond": 48,
+              "totalBytesProcessed": 532,
+              "totalLinesProcessed": 3,
+              "execTime": 0.061724751,
+              "queueTime": 0.826954481,
+              "subqueries": 5,
+              "totalEntriesReturned": 1
             },
             "querier": {
               "store": {
@@ -146,20 +206,20 @@
               }
             },
             "ingester": {
-              "totalReached": 16,
+              "totalReached": 64,
               "totalChunksMatched": 0,
-              "totalBatches": 0,
-              "totalLinesSent": 0,
+              "totalBatches": 1,
+              "totalLinesSent": 3,
               "store": {
-                "totalChunksRef": 0,
-                "totalChunksDownloaded": 0,
-                "chunksDownloadTime": 0,
+                "totalChunksRef": 1,
+                "totalChunksDownloaded": 1,
+                "chunksDownloadTime": 137002,
                 "chunk": {
                   "headChunkBytes": 0,
                   "headChunkLines": 0,
-                  "decompressedBytes": 0,
-                  "decompressedLines": 0,
-                  "compressedBytes": 0,
+                  "decompressedBytes": 532,
+                  "decompressedLines": 3,
+                  "compressedBytes": 259,
                   "totalDuplicates": 0
                 }
               }
@@ -167,29 +227,71 @@
           }
         }
       },
-      "scalar": 0
+      "scalar": 3
     }
   },
   "summary": {
     "status": "mvp",
     "note": "Next: query Prometheus/Loki and add correlation.",
-    "crashloop_backoff": null,
     "pod_restarts_total": 0,
+    "running_pods": 1,
+    "crashloop_backoff": null,
     "prometheus_status": "ok",
     "restarts_signal_missing": false,
-    "running_pods": 1,
-    "error_log_count": 0,
-    "error_log_sample_count": 0,
+    "error_log_count": 3,
+    "error_log_sample_count": 3,
     "loki_status": "ok",
-    "suspected_category": "healthy",
-    "top_error_type": null,
-    "error_type_counts": {},
-    "severity": "none",
-    "confidence": "high",
-    "triage": "No error logs and no restart signals detected in this time window; workload appears healthy.",
+    "correlation": {
+      "status": "ok",
+      "top_n": 5,
+      "pod_regex": "^(flask\\\\-demo\\\\-b4fcfc7b9\\\\-q72kd)$",
+      "queries": {
+        "restarts_by_pod": "sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace=\"default\",pod=~\"^(flask\\\\-demo\\\\-b4fcfc7b9\\\\-q72kd)$\",container=\"flask-demo\"}[120m]))",
+        "crashloop_by_pod": "sum by (pod) (increase(kube_pod_container_status_waiting_reason{namespace=\"default\",pod=~\"^(flask\\\\-demo\\\\-b4fcfc7b9\\\\-q72kd)$\",container=\"flask-demo\"}[120m]))"
+      },
+      "pods": [
+        {
+          "pod": "flask-demo-b4fcfc7b9-q72kd",
+          "loki_error_count": 3,
+          "loki_containers": {
+            "flask-demo": 3
+          },
+          "loki_samples": [
+            {
+              "ts": "1767751745359007390",
+              "line": "2026-01-07 02:09:05,358 ERROR flask-demo {\"event\":\"request\",\"path\":\"/mem\",\"error_type\":\"memory\",\"msg\":\"allocated memory\",\"mb\":200}",
+              "container": "flask-demo"
+            },
+            {
+              "ts": "1767751737660103077",
+              "line": "2026-01-07 02:08:57,659 ERROR flask-demo {\"event\":\"request\",\"path\":\"/dep\",\"error_type\":\"dependency\",\"host\":\"10.0.0.1\",\"port\":5432,\"msg\":\"connect failed\",\"err\":\"timed out\"}",
+              "container": "flask-demo"
+            },
+            {
+              "ts": "1767751737363914802",
+              "line": "2026-01-07 02:08:57,363 ERROR flask-demo {\"event\":\"request\",\"path\":\"/dep\",\"error_type\":\"dependency\",\"host\":\"10.0.0.1\",\"port\":5432,\"msg\":\"connect failed\",\"err\":\"timed out\"}",
+              "container": "flask-demo"
+            }
+          ],
+          "prom_restarts_increase": 0.0,
+          "prom_crashloop_backoff": 0.0
+        }
+      ]
+    },
+    "worst_pod": "flask-demo-b4fcfc7b9-q72kd",
+    "suspected_category": "dependency",
+    "top_error_type": "dependency",
+    "error_type_counts": {
+      "memory": 1,
+      "dependency": 2
+    },
+    "severity": "low",
+    "confidence": "medium",
+    "triage": "Logs indicate upstream dependency connectivity failures.",
     "recommendations": [
-      "Optional: add SLO-style signals (HTTP 5xx rate, latency p95/p99) to detect silent failures",
-      "Ensure log labels are stable (namespace/app/pod/container) and Prometheus scrape targets are up"
+      "Check DNS, service endpoints, and network policies",
+      "Add timeouts, retries, and circuit-breakers to dependency clients",
+      "Ensure readinessProbe depends on critical dependencies"
     ]
   }
 }

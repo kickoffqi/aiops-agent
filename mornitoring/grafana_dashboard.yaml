@@ -1,8 +1,8 @@
 apiVersion: dashboard.grafana.app/v1beta1
-kind: Dashboard
+kind: ConficMap
 metadata:
-  name: ad2hrcv
-  namespace: default
+  name: AIOPS-v3-application-monitoring-dashboard
+  namespace: monitoring
   uid: XnQK30fxfdoeSabaS0UIbiQVvXXnoImbaHRehyfXa4gX
   resourceVersion: "1"
   generation: 1
