@@ -23,9 +23,7 @@ class OllamaClient:
             "format": "json",
             "stream": False,
         }
-        #Debug output payload
-        print("Payload to Ollama:", payload)
-        
+
         r = requests.post(url, json=payload, timeout=self.timeout)
         r.raise_for_status()
         data = r.json()

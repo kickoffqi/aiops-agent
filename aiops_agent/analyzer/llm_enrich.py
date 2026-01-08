@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 import requests
 
 print("[DBG] LLM Enrich called")
+
 SYSTEM_PROMPT = """You are an SRE/AIOps assistant.
 Rules:
 - Use ONLY the provided evidence. If missing, say "unknown".
@@ -142,9 +143,9 @@ def enrich_with_llm(ctx: IncidentContext, settings: Settings) -> Dict[str, Any]:
     prompt = _build_prompt(ctx)    
 
     #Debug output prompt
-    print("[DBG] LLM Prompt:")
-    print(len(prompt))
-    print(prompt)
+    #print("[DBG] LLM Prompt:")
+    #print(len(prompt))
+    #print(prompt)
 
     if not settings.enable_llm:
         ctx.summary["llm"] = {"status": "skipped"}

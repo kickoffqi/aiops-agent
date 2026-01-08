@@ -410,6 +410,16 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     if has_errors and dominance >= 0.6 and confidence in {"low", "unknown"}:
         confidence = "medium"
 
+    if suspected_category == "dependency":
+        if error_log_count_n >= 300:
+            severity = "high"
+            confidence = "high"
+        elif error_log_count_n >= 50:
+            if severity in {"none", "low"}:
+                severity = "medium"
+            if confidence in {"unknown", "low", "medium"}:
+                confidence = "high"
+
 
     # 5) dominance_ratio
     total_err = sum(error_type_counts.values()) if error_type_counts else 0
