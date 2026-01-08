@@ -134,6 +134,20 @@ def slow():
 def metrics():
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
+@app.get("/unknown")
+def unknown():
+    start = time.time()
+    samples = [
+        "ERROR flask-demo upstream request failed: timeout",
+        "ERROR flask-demo unexpected error while handling request",
+        "ERROR flask-demo connection refused",
+        "ERROR flask-demo JSON decode error",
+    ]
+    msg = samples[int(time.time()) % len(samples)]
+    log.error(msg)
+    _observe("/unknown", "500", start)
+    return "unknown error\n", 500
+
 
 # =========================
 # Entry point (for docker)

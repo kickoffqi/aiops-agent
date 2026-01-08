@@ -1,3 +1,5 @@
+#docker login -u <username>
+
 #Confirm your Azure account and K8s details
 az aks get-credentials -g rg-aks-platform-dev -n aks-platform-dev --overwrite-existing
 kubectl config current-context
