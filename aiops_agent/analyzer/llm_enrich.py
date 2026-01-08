@@ -8,7 +8,7 @@ from ..llm.schema import LLMOutput
 from typing import Any, Dict, Optional
 import requests
 
-
+print("[DBG] LLM Enrich called")
 SYSTEM_PROMPT = """You are an SRE/AIOps assistant.
 Rules:
 - Use ONLY the provided evidence. If missing, say "unknown".
@@ -50,8 +50,12 @@ def _build_prompt(ctx: IncidentContext) -> str:
         })
 
     instruction = (
-        "你是AIOps助手。你必须只输出JSON，不能输出任何多余文字。\n"
-        "输出schema:\n"
+        "You are an AIOps incident assistant.\n"
+        "Task:\n"
+        "1) Summarize the incident for an on-call engineer.\n"
+        "2) Provide 1-3 hypotheses with evidence strictly from the input.\n"
+        "3) Align actions with the provided remediation (do NOT invent kubectl commands that are not present).\n"
+        "Export Schema:\n"
         "{\n"
         '  "llm_summary": {"root_cause": string, "key_evidence": [string], "next_actions": [string]},\n'
         '  "risk_notes": [string],\n'
@@ -136,6 +140,11 @@ def enrich_with_llm(ctx: IncidentContext, settings: Settings) -> Dict[str, Any]:
     client = OllamaClient(base_url=base_url, timeout_s=timeout_s)
 
     prompt = _build_prompt(ctx)    
+
+    #Debug output prompt
+    print("[DBG] LLM Prompt:")
+    print(len(prompt))
+    print(prompt)
 
     if not settings.enable_llm:
         ctx.summary["llm"] = {"status": "skipped"}
