@@ -195,6 +195,31 @@ def _confidence_from_signals(
         return "low"
     return "unknown"
 
+def _telemetry_ok(ctx: IncidentContext) -> bool:
+    s = ctx.summary or {}
+    prom_ok = (s.get("prometheus_status") == "ok")
+    loki_ok = (s.get("loki_status") == "ok")
+    running_pods = _num(s.get("running_pods"))
+    corr = s.get("correlation") or {}
+    corr_status = corr.get("status")
+    has_corr_pods = bool((corr.get("pods") or []))
+
+    # 你可以按你的项目语义微调：
+    # - prom/loki ok
+    # - running_pods > 0
+    # - correlation 至少不是 outright error
+    # - 并且最好能选到 pods（否则可能是 selector 问题）
+    if not (prom_ok and loki_ok):
+        return False
+    if running_pods is None or running_pods <= 0:
+        return False
+    if corr_status in {"loki_error", "prom_error"}:
+        return False
+    if not has_corr_pods and corr_status == "no_loki_pods":
+        return False
+
+    return True
+    
 
 def _has_crashloop_signature(ctx: IncidentContext, max_rows: int = 50) -> bool:
     lines = _iter_loki_lines_for_triage(ctx, max_rows=max_rows)
@@ -361,12 +386,6 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
         running_pods=running_pods_n,
     )
 
-    confidence = _confidence_from_signals(
-        has_logs=has_errors,
-        restarts=pod_restarts_n,
-        crashloop_backoff=crashloop_backoff_n,
-    )
-
     # 1) 如果 Loki 命中 crashloop 强特征：置信度至少 high
     if crash_sig and confidence in {"low", "medium", "unknown"}:
         confidence = "high"
@@ -384,7 +403,8 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     # 4) healthy：直接给最清晰的结论（可选，但很推荐）
     if suspected_category == "healthy":
         severity = "none"
-        confidence = "high"
+        confidence = "high" if _telemetry_ok(ctx) else "medium"
+        # 或者你更严格： else "unknown"
 
     dominance = (s.get("dominance_ratio") or 0.0)
     if has_errors and dominance >= 0.6 and confidence in {"low", "unknown"}:
@@ -396,7 +416,9 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     dominance = 0.0
     if total_err > 0 and top_error_type:
         dominance = error_type_counts.get(top_error_type, 0) / total_err
-    
+
+    # 6) telemetry confidence
+    telemetry_conf = "high" if _telemetry_ok(ctx) else "low"
 
 
     # 只用已识别的类型算 dominance（unknown 不算）
@@ -427,6 +449,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     # keep your existing dominance_ratio as sample-based
     dominance_ratio_sample = dominance_ratio
 
+
     # -------------------------
     # Final Output
     # -------------------------
@@ -443,6 +466,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
         "secondary_error_types": secondary_error_types,
         "worst_pod_restarts_increase": restarts_for_triage,
         "worst_pod_crashloop_backoff": crashloop_for_triage,
+        "telemetry_confidence": telemetry_conf,
     }
 
     ctx.summary.update(triage_obj)

@@ -24,3 +24,4 @@ aiops_agent/collector/prometheus.py
 aiops_agent/collector/prometheus_v2.py
 aiops_agent/gitops/patches.py
 aiops_agent/llm/ollama_client.py
+aiops_agent/llm/schema.py

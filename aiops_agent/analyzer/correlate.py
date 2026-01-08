@@ -319,4 +319,9 @@ def correlate_prom_loki(ctx: IncidentContext, settings: Settings, top_n: int = 5
         key=lambda x: (x["prom_crashloop_backoff"], x["prom_restarts_increase"], x["loki_error_count"])
     )
     ctx.summary["worst_pod"] = worst.get("pod")
+    # after computing worst
+    ctx.summary["crashloop_backoff"] = worst.get("prom_crashloop_backoff")
+    ctx.summary["worst_pod_crashloop_backoff"] = worst.get("prom_crashloop_backoff")
+    ctx.summary["worst_pod_restarts_increase"] = worst.get("prom_restarts_increase")
+    
     return corr
