@@ -7,7 +7,7 @@ import requests
 
 
 class OllamaClient:
-    def __init__(self, base_url: str = "http://localhost:11434", timeout_s: int = 180):
+    def __init__(self, base_url, timeout_s: int = 30):
         self.base_url = base_url.rstrip("/")
         self.timeout = (10, timeout_s)  # (connect, read)
 
@@ -23,6 +23,7 @@ class OllamaClient:
             "format": "json",
             "stream": False,
         }
+
         r = requests.post(url, json=payload, timeout=self.timeout)
         r.raise_for_status()
         data = r.json()
@@ -50,6 +51,8 @@ class OllamaClient:
             ],
             "format": "json",
             "stream": False,
+            "max_tokens": 300,
+            "temperature": 0.2,
         }
         r = requests.post(url, json=payload, timeout=self.timeout)
         r.raise_for_status()

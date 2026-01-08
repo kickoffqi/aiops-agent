@@ -195,6 +195,31 @@ def _confidence_from_signals(
         return "low"
     return "unknown"
 
+def _telemetry_ok(ctx: IncidentContext) -> bool:
+    s = ctx.summary or {}
+    prom_ok = (s.get("prometheus_status") == "ok")
+    loki_ok = (s.get("loki_status") == "ok")
+    running_pods = _num(s.get("running_pods"))
+    corr = s.get("correlation") or {}
+    corr_status = corr.get("status")
+    has_corr_pods = bool((corr.get("pods") or []))
+
+    # 你可以按你的项目语义微调：
+    # - prom/loki ok
+    # - running_pods > 0
+    # - correlation 至少不是 outright error
+    # - 并且最好能选到 pods（否则可能是 selector 问题）
+    if not (prom_ok and loki_ok):
+        return False
+    if running_pods is None or running_pods <= 0:
+        return False
+    if corr_status in {"loki_error", "prom_error"}:
+        return False
+    if not has_corr_pods and corr_status == "no_loki_pods":
+        return False
+
+    return True
+    
 
 def _has_crashloop_signature(ctx: IncidentContext, max_rows: int = 50) -> bool:
     lines = _iter_loki_lines_for_triage(ctx, max_rows=max_rows)
@@ -228,7 +253,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     s = ctx.summary or {}
 
     # Inputs
-    error_log_count = s.get("error_log_count")
+    error_log_count = s.get("error_log_count_window")
     pod_restarts = s.get("pod_restarts_total")
     running_pods = s.get("running_pods")
     crashloop_backoff = s.get("crashloop_backoff")
@@ -360,12 +385,18 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
         crashloop_backoff=crashloop_backoff_n,
         running_pods=running_pods_n,
     )
-
-    confidence = _confidence_from_signals(
-        has_logs=has_errors,
-        restarts=pod_restarts_n,
-        crashloop_backoff=crashloop_backoff_n,
-    )
+    severity_reason = "no_restart_or_crashloop_and_running_pods>0"
+    if crashloop_backoff_n is not None and crashloop_backoff_n > 0:
+        if pod_restarts_n is not None and pod_restarts_n >= 10:
+            severity_reason = "crashloop_backoff>0_and_restarts>=10"
+        else:
+            severity_reason = "crashloop_backoff>0"
+    elif pod_restarts_n is not None and pod_restarts_n > 5:
+        severity_reason = "restarts>5"
+    elif pod_restarts_n is not None and pod_restarts_n > 0:
+        severity_reason = "restarts>0"
+    elif running_pods_n is not None and running_pods_n == 0:
+        severity_reason = "running_pods==0"
 
     # 1) 如果 Loki 命中 crashloop 强特征：置信度至少 high
     if crash_sig and confidence in {"low", "medium", "unknown"}:
@@ -380,15 +411,49 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     if has_errors and (not is_restarting) and (not has_backoff):
         if severity == "none":
             severity = "low"
+            severity_reason = "error_only_no_restart_backoff"
 
     # 4) healthy：直接给最清晰的结论（可选，但很推荐）
     if suspected_category == "healthy":
         severity = "none"
-        confidence = "high"
+        severity_reason = "healthy_category"
+        confidence = "high" if _telemetry_ok(ctx) else "medium"
+        # 或者你更严格： else "unknown"
 
     dominance = (s.get("dominance_ratio") or 0.0)
     if has_errors and dominance >= 0.6 and confidence in {"low", "unknown"}:
         confidence = "medium"
+
+    if suspected_category == "dependency":
+        if error_log_count_n >= 300:
+            severity = "high"
+            severity_reason = "dependency_error_logs>=300"
+            confidence = "high"
+        elif error_log_count_n >= 50:
+            if severity in {"none", "low"}:
+                severity = "medium"
+                severity_reason = "dependency_error_logs>=50"
+            if confidence in {"unknown", "low", "medium"}:
+                confidence = "high"
+
+    err_window = _num(s.get("error_log_count_window")) or error_log_count_n
+
+    if suspected_category in {"config", "dependency"}:
+        if err_window >= 300:
+            severity = "high"
+            severity_reason = "error_logs_window>=300"
+        elif err_window >= 50:
+            severity = "medium"
+            severity_reason = "error_logs_window>=50"
+        elif err_window >= 1:
+            severity = "low"
+            severity_reason = "error_logs_window>=1"
+        else:
+            severity = "none"
+            severity_reason = "error_logs_window==0"
+    
+    #servity reasons
+
 
 
     # 5) dominance_ratio
@@ -396,7 +461,9 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     dominance = 0.0
     if total_err > 0 and top_error_type:
         dominance = error_type_counts.get(top_error_type, 0) / total_err
-    
+
+    # 6) telemetry confidence
+    telemetry_conf = "high" if _telemetry_ok(ctx) else "low"
 
 
     # 只用已识别的类型算 dominance（unknown 不算）
@@ -426,6 +493,12 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
 
     # keep your existing dominance_ratio as sample-based
     dominance_ratio_sample = dominance_ratio
+    if suspected_category == "config":
+        if dominance_ratio_sample is not None and dominance_ratio_sample >= 0.6:
+            if err_window >= 50:
+                confidence = "high"
+            elif err_window >= 1 and confidence in {"low","unknown"}:
+                confidence = "medium"
 
     # -------------------------
     # Final Output
@@ -433,8 +506,9 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     triage_obj = {
         "suspected_category": suspected_category,
         "top_error_type": top_error_type,
-        "error_type_counts": error_type_counts,
+        "error_type_counts_sampled": error_type_counts,
         "severity": severity,
+        "severity_reason": severity_reason,
         "confidence": confidence,
         "triage": triage,
         "recommendations": recs,
@@ -443,6 +517,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
         "secondary_error_types": secondary_error_types,
         "worst_pod_restarts_increase": restarts_for_triage,
         "worst_pod_crashloop_backoff": crashloop_for_triage,
+        "telemetry_confidence": telemetry_conf,
     }
 
     ctx.summary.update(triage_obj)

@@ -310,7 +310,7 @@ def correlate_prom_loki(ctx: IncidentContext, settings: Settings, top_n: int = 5
     ctx.summary["correlation"] = corr
 
     # ✅ 关键：把“统计值”和“样本数”写进 summary（不再依赖 limit=50 的 rows）
-    ctx.summary["error_log_count"] = int(sum(counts_by_pod.values()))
+    ctx.summary["error_log_count_window"] = int(sum(counts_by_pod.values()))
     ctx.summary["error_log_sample_count"] = samples_total
 
     # worst_pod 仍保留
@@ -319,4 +319,9 @@ def correlate_prom_loki(ctx: IncidentContext, settings: Settings, top_n: int = 5
         key=lambda x: (x["prom_crashloop_backoff"], x["prom_restarts_increase"], x["loki_error_count"])
     )
     ctx.summary["worst_pod"] = worst.get("pod")
+    # after computing worst
+    ctx.summary["crashloop_backoff"] = worst.get("prom_crashloop_backoff")
+    ctx.summary["worst_pod_crashloop_backoff"] = worst.get("prom_crashloop_backoff")
+    ctx.summary["worst_pod_restarts_increase"] = worst.get("prom_restarts_increase")
+
     return corr

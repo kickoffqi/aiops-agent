@@ -15,6 +15,8 @@ class Settings(BaseModel):
     ollama_url: str = Field(default="http://localhost:11434")
     ollama_model: str = Field(default="qwen2.5:7b-instruct")
     llm_timeout: int = Field(default=60)
+    enable_llm: bool = Field(default=True)
+    ollama_timeout_s: int = Field(default=60, description="HTTP timeout seconds for Ollama requests")
 
 
 def load_settings() -> Settings:
@@ -33,4 +35,6 @@ def load_settings() -> Settings:
         ollama_url=os.getenv("OLLAMA_URL", "http://localhost:11434"),
         ollama_model=os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct"),
         llm_timeout=int(os.getenv("LLM_TIMEOUT", "60")),
+        enable_llm=os.getenv("ENABLE_LLM", "true").lower() == "true",
+        ollama_timeout_s=int(os.getenv("OLLAMA_TIMEOUT_S", "180")),
     )

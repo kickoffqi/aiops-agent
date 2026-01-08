@@ -334,7 +334,7 @@ def remediation_v1(ctx: IncidentContext, settings: Settings) -> Dict[str, Any]:
     dom_pod = _as_float(s.get("dominance_ratio_pod"))
     dom_sample = _as_float(s.get("dominance_ratio_sample"))
     restarts = _as_int(s.get("pod_restarts_total"))
-    has_errors = _as_int(s.get("error_log_count")) > 0
+    has_errors = _as_int(s.get("error_log_count_window")) > 0
 
     # 简单 gate：如果完全没信号，就不提 remediation
     if (not has_errors) and restarts == 0:
