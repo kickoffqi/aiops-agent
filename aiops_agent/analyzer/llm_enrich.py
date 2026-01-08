@@ -31,7 +31,7 @@ def _build_prompt(ctx: IncidentContext) -> str:
             "pod_restarts_total": summary.get("pod_restarts_total"),
             "running_pods": summary.get("running_pods"),
             "crashloop_backoff": summary.get("crashloop_backoff"),
-            "error_log_count": summary.get("error_log_count"),
+            "error_log_count_window": summary.get("error_log_count_window"),
             "worst_pod": summary.get("worst_pod"),
             "suspected_category": summary.get("suspected_category"),
             "severity": summary.get("severity"),
@@ -55,7 +55,7 @@ def _build_prompt(ctx: IncidentContext) -> str:
         "Task:\n"
         "1) Summarize the incident for an on-call engineer.\n"
         "2) Provide 1-3 hypotheses with evidence strictly from the input.\n"
-        "3) Align actions with the provided remediation (do NOT invent kubectl commands that are not present).\n"
+        "3) next_actions MUST be a subset of remediation.commands and remediation.verify; copy verbatim. Do not paraphrase.\n"
         "Export Schema:\n"
         "{\n"
         '  "llm_summary": {"root_cause": string, "key_evidence": [string], "next_actions": [string]},\n'

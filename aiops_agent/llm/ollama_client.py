@@ -7,7 +7,7 @@ import requests
 
 
 class OllamaClient:
-    def __init__(self, base_url, timeout_s: int = 180):
+    def __init__(self, base_url, timeout_s: int = 30):
         self.base_url = base_url.rstrip("/")
         self.timeout = (10, timeout_s)  # (connect, read)
 
