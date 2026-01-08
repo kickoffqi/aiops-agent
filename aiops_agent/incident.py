@@ -11,4 +11,3 @@ class IncidentContext(BaseModel):
     prom_queries: dict[str, Any] = Field(default_factory=dict)
     loki_queries: dict[str, Any] = Field(default_factory=dict)
     summary: dict[str, Any] = Field(default_factory=dict)
-    llm: Optional[Dict[str, Any]] = Field(default_factory=dict)
