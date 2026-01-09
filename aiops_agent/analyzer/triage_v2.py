@@ -114,7 +114,7 @@ def _extract_error_types_from_loki(ctx: IncidentContext, max_rows: int = 200) ->
             if isinstance(et, str) and et:
                 types.append(et)
                 continue
-
+        
         # 2) fallback heuristics（覆盖 gunicorn/crashloop）
         if "missing required_token" in l or "missing required_token env var" in l or "missing config" in l:
             types.append("config")

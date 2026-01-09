@@ -138,10 +138,11 @@ def metrics():
 def unknown():
     start = time.time()
     samples = [
-        "ERROR flask-demo upstream request failed: timeout",
-        "ERROR flask-demo unexpected error while handling request",
-        "ERROR flask-demo connection refused",
-        "ERROR flask-demo JSON decode error",
+        "ERROR flask-demo unknown error",
+        "ERROR flask-demo request failed",
+        "ERROR flask-demo unexpected exception",
+        "ERROR flask-demo handler failed",
+        "ERROR flask-demo internal error",
     ]
     msg = samples[int(time.time()) % len(samples)]
     log.error(msg)
