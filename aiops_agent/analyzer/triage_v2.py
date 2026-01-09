@@ -115,6 +115,11 @@ def _extract_error_types_from_loki(ctx: IncidentContext, max_rows: int = 200) ->
                 types.append(et)
                 continue
         
+        # NEW: path-based override if present in raw text
+        if 'path":"/unknown"' in l or " /unknown" in l:
+            types.append("unknown")
+            continue
+        
         # 2) fallback heuristics（覆盖 gunicorn/crashloop）
         if "missing required_token" in l or "missing required_token env var" in l or "missing config" in l:
             types.append("config")
@@ -367,15 +372,25 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
             ]
         
         else:
-            suspected_category = "no_signal_or_unknown"
-            triage = "No strong signals to classify incident; verify observability pipelines (Prometheus/Loki) and label selectors."
-            recs = [
-                "Verify Loki selector matches your workload labels (namespace/app/container)",
-                "Verify Prometheus is scraping kube-state-metrics and your targets",
-            ]
-
-        
-
+            # --- NEW: distinguish unknown types ---
+            if has_errors and (not is_restarting) and (not has_backoff):
+                suspected_category = "unknown"
+                triage = (
+                    "Application is emitting frequent error logs but there are no restart/crashloop signals. "
+                    "This often indicates handler/logic errors, bad requests, or non-fatal exceptions."
+                )
+                recs = [
+                    "Inspect recent error logs for stack traces / request path / error codes",
+                    "Check deployment env/config for recent changes (without exposing secrets)",
+                    "Correlate with HTTP 5xx rate / request volume if available",
+                ]
+            else:
+                suspected_category = "no_signal"
+                triage = "No strong signals (logs/metrics) to classify incident; verify observability pipelines and selectors."
+                recs = [
+                    "Verify Loki selector matches your workload labels (namespace/app/container)",
+                    "Verify Prometheus is scraping kube-state-metrics and your targets",
+                ]
 
     # -------------------------
     # Severity & Confidence (finalize once)
