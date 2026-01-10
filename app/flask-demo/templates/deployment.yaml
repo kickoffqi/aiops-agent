@@ -4,6 +4,8 @@ metadata:
   name: {{ include "flask-demo.fullname" . }}
   labels:
     {{- include "flask-demo.labels" . | nindent 4 }}
+  annotations:
+    rollout/force: {{ .Values.rollout.force | quote }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:

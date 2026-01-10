@@ -1,0 +1,4 @@
+faults:
+  portMismatch:
+    enabled: true
+    serviceTargetPort: 80

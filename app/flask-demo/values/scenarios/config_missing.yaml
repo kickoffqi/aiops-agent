@@ -1,0 +1,3 @@
+app:
+  mode: normal
+  requiredToken: "" # 触发 /config 报错

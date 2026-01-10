@@ -5,6 +5,9 @@ image:
   tag: aiops-lab-v4
   pullPolicy: IfNotPresent
 
+rollout:
+  force: ""
+
 nameOverride: ""
 fullnameOverride: ""
 

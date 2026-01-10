@@ -1,0 +1,106 @@
+replicaCount: 1
+
+image:
+  repository: kickoffqi/flask-demo
+  tag: aiops-lab-v4
+  pullPolicy: IfNotPresent
+
+rollout:
+  force: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+# --- Application behavior knobs (your app should read these env vars) ---
+app:
+  # normal | config_missing | dependency_fail | unknown_fail
+  mode: normal
+
+  # If empty, /config should emit error_type=config (Missing REQUIRED_TOKEN env var)
+  requiredToken: ""
+
+  dependency:
+    url: "http://example:8080"
+    timeoutMs: 2000
+
+# --- Ports (platform) ---
+ports:
+  containerPort: 8080
+
+service:
+  type: ClusterIP
+  port: 8080
+
+  # default good path: Service targetPort uses named port "http"
+  # (when faults.portMismatch.enabled = false)
+  # Keep this here for readability; templates will decide final targetPort.
+  targetPort: http
+
+probes:
+  enabled: true
+  path: /
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 2
+  failureThreshold: 3
+
+# --- Fault injection knobs (Config-style incident) ---
+faults:
+  # Service -> Pod port mismatch
+  portMismatch:
+    enabled: false
+    serviceTargetPort: 80
+
+  # Probe -> container port mismatch (causes readiness/liveness fail)
+  probePortMismatch:
+    enabled: false
+    probePort: 80
+
+resources:
+  limits:
+    cpu: "200m"
+    memory: "128Mi"
+  requests:
+    cpu: "100m"
+    memory: "32Mi"
+
+serviceAccount:
+  create: true
+  automount: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+securityContext: {}
+podSecurityContext: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls: []
+
+httpRoute:
+  enabled: false
+  annotations: {}
+  parentRefs:
+    - name: gateway
+      sectionName: http
+  hostnames:
+    - chart-example.local
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
