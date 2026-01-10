@@ -82,6 +82,6 @@ tmux select-layout -t "$SESSION:0" tiled
 
 tmux attach -t "$SESSION"
 
-if ! tmux has-session -t "$SESSION" 2>/dev/null; then
-  exec "$SCRIPT_PATH"
-fi
+#if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+#  exec "$SCRIPT_PATH"
+#fi

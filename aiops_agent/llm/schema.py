@@ -28,6 +28,7 @@ class LLMOutput(BaseModel):
     llm_summary: LLMSummary = Field(default_factory=LLMSummary)
     risk_notes: List[str] = Field(default_factory=list)
     confidence: Confidence = Field(default="low")
-
+    model_config = {"extra": "allow"}
+    
     # NEW (optional): present only when model decides / or when instructed (unknown/low)
     suggested_classification: Optional[SuggestedClassification] = Field(default=None)

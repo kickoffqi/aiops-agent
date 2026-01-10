@@ -320,6 +320,101 @@ def _playbook_memory(settings: Settings, ctx: IncidentContext) -> RemediationPla
         safety_notes=safety_notes,
     )
 
+def _playbook_port_mismatch(settings: Settings, ctx: IncidentContext) -> RemediationPlan:
+    """
+    Config scenario: port mismatch (Service targetPort / containerPort / probes inconsistent)
+    Evidence usually comes from ctx.summary["k8s"] and/or pod events in logs.
+    """
+    target = _default_target(settings, ctx)
+    ns = target["namespace"]
+    app = target["app"]
+    deploy = target["deployment"] or app
+
+    s = ctx.summary or {}
+    corr = s.get("correlation") or {}
+    pod_re = corr.get("pod_regex") if isinstance(corr, dict) else None
+
+    # Optional evidence bundle if triage wrote it
+    ev = s.get("port_mismatch_evidence") or {}
+    resolved_tp = ev.get("resolved_service_targetPort")
+    svc_tp = ev.get("service_targetPort")
+    probe_ports = ev.get("probe_ports")
+    container_ports = ev.get("container_ports")
+    reasons = ev.get("reasons") or []
+    probe_fail_samples = ev.get("probe_fail_samples") or []
+
+    rationale = "Detected port mismatch between Service/Endpoints/Container ports and/or probe ports, causing connection refused / probe failures."
+    if reasons:
+        rationale += " Reasons: " + "; ".join([str(x) for x in reasons[:3]])
+
+    commands = _dedupe([
+        f"kubectl -n {ns} get deploy/{deploy} -o yaml | sed -n '1,240p'",
+        f"kubectl -n {ns} get svc/{app} -o yaml | sed -n '1,180p'",
+        f"kubectl -n {ns} get endpoints/{app} -o yaml || true",
+        f"kubectl -n {ns} describe pod -l app.kubernetes.io/name={app} | sed -n '1,220p'",
+        f"kubectl -n {ns} logs -l app.kubernetes.io/name={app} --since=30m | tail -n 200",
+    ])
+
+    # 推荐用 Helm values 解决（避免 drift）
+    patches: List[Dict[str, Any]] = [
+        {
+            "type": "helm-values",
+            "resource": "values.yaml",
+            "description": "Align containerPort/service targetPort/probes to the app listening port. Prefer GitOps/Helm upgrade.",
+            "values_hint": {
+                # 这里用你实际 app 监听端口（你 case 是 8080）
+                "containerPort": 8080,
+                "service": {"port": 80, "targetPort": 8080},
+                # 下面字段名需与你 chart 的 values 对应；如果 chart 里叫 livenessProbe/readinessProbe，就保持
+                "livenessProbe": {"httpGet": {"path": "/", "port": 8080}},
+                "readinessProbe": {"httpGet": {"path": "/", "port": 8080}},
+            },
+            "apply_example": f"helm upgrade --install {app} <chart_path> -n {ns} -f values.yaml -f values_config.yaml",
+        }
+    ]
+
+    verify = _dedupe([
+        f"kubectl -n {ns} get pods -l app.kubernetes.io/name={app} -o wide",
+        f"kubectl -n {ns} get events --sort-by=.lastTimestamp | tail -n 50",
+        f"kubectl -n {ns} rollout status deploy/{deploy}",
+        f"kubectl -n {ns} port-forward svc/{app} 8080:80",
+        "curl -i http://localhost:8080/ || true",
+        "curl -i http://localhost:8080/config || true",
+        # 你也可以额外加探测容器内端口的验证：
+        # f"kubectl -n {ns} exec -it deploy/{deploy} -- sh -c 'netstat -lntp || ss -lntp' || true",
+    ])
+
+    safety_notes = [
+        "Prefer fixing ports via Helm values (GitOps) to avoid manual drift.",
+        "If Service targetPort uses a named port (e.g., 'http'), ensure container ports include the same name and correct containerPort.",
+        "Probe ports must match the actual listening port inside the container; otherwise kubelet will restart the container (false positives).",
+    ]
+
+    # 把 evidence 也写进 plan，方便 report.json 审计（可选但很有用）
+    if any([resolved_tp, svc_tp, probe_ports, container_ports, probe_fail_samples]):
+        patches.append({
+            "type": "evidence",
+            "resource": "aiops-summary",
+            "description": "Captured evidence snapshot for audit/debug.",
+            "evidence": {
+                "service_targetPort": svc_tp,
+                "resolved_service_targetPort": resolved_tp,
+                "probe_ports": probe_ports,
+                "container_ports": container_ports,
+                "probe_fail_samples": probe_fail_samples[:5],
+            }
+        })
+
+    return RemediationPlan(
+        status="proposed",
+        playbook="port_mismatch",
+        target=target,
+        rationale=rationale,
+        commands=commands,
+        patches=patches,
+        verify=verify,
+        safety_notes=safety_notes,
+    )
 
 def remediation_v1(ctx: IncidentContext, settings: Settings) -> Dict[str, Any]:
     """
@@ -354,6 +449,8 @@ def remediation_v1(ctx: IncidentContext, settings: Settings) -> Dict[str, Any]:
 
         if key == "crashloop":
             plan = _playbook_crashloop(settings, ctx)
+        elif key == "port_mismatch":
+            plan = _playbook_port_mismatch(settings, ctx)
         elif key == "config":
             plan = _playbook_config(settings, ctx)
         elif key == "dependency":
@@ -392,15 +489,21 @@ def remediation_v1(ctx: IncidentContext, settings: Settings) -> Dict[str, Any]:
     "Error log rate should drop significantly"
     ]
 
+    ns = getattr(settings, "namespace", "default")
+    app = getattr(settings, "app_label", "")
+    deploy = app  # v1 默认
+    corr = (ctx.summary or {}).get("correlation") or {}
+    pod_re = corr.get("pod_regex") if isinstance(corr, dict) else "<pod_re>"
+
     success_criteria = [
-    "PromQL: sum(increase(kube_pod_container_status_restarts_total{namespace=\"default\"}[10m])) == 0",
-    "PromQL: max_over_time(kube_pod_container_status_waiting_reason{namespace=\"default\",reason=\"CrashLoopBackOff\",pod=~\"<pod_re>\"}[10m]) == 0",
-    "Loki: sum(rate({namespace=\"default\",app=\"flask-demo\"} |~ \"(?i)error\"[5m])) near 0"
+        f'PromQL: sum(increase(kube_pod_container_status_restarts_total{{namespace="{ns}"}}[10m])) == 0',
+        f'PromQL: max_over_time(kube_pod_container_status_waiting_reason{{namespace="{ns}",reason="CrashLoopBackOff",pod=~"{pod_re}"}}[10m]) == 0',
+        f'Loki: sum(rate({{namespace="{ns}",app="{app}"}} |~ "(?i)error"[5m])) near 0',
     ]
 
     rollback = [
-    "If change applied via kubectl set env, revert by redeploying previous revision or GitOps revert",
-    "kubectl -n default rollout undo deploy/flask-demo"
+        "If change applied via kubectl set env, revert by redeploying previous revision or GitOps revert",
+        f"kubectl -n {ns} rollout undo deploy/{deploy}",
     ]
 
     out = {
