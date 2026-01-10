@@ -5,78 +5,79 @@ metadata:
   labels:
     {{- include "flask-demo.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
-  {{- end }}
   selector:
     matchLabels:
       {{- include "flask-demo.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      labels:
+        {{- include "flask-demo.selectorLabels" . | nindent 8 }}
       {{- with .Values.podAnnotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      labels:
-        {{- include "flask-demo.labels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: {{ include "flask-demo.serviceAccountName" . }}
       {{- with .Values.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       containers:
-        - name: {{ .Chart.Name }}
-          {{- with .Values.securityContext }}
-          securityContext:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        - name: flask-demo
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.containerPort }}
+              containerPort: {{ .Values.ports.containerPort }}
               protocol: TCP
-          {{- with .Values.livenessProbe }}
-          livenessProbe:
-            httpGet:
-              path: /
-              port: http
+
+          env:
+            - name: APP_MODE
+              value: {{ .Values.app.mode | quote }}
+            - name: REQUIRED_TOKEN
+              value: {{ .Values.app.requiredToken | quote }}
+            - name: DEP_URL
+              value: {{ .Values.app.dependency.url | quote }}
+            - name: DEP_TIMEOUT_MS
+              value: {{ .Values.app.dependency.timeoutMs | quote }}
+
+          {{- if .Values.probes.enabled }}
+          {{- $probePort := "http" }}
+          {{- if .Values.faults.probePortMismatch.enabled }}
+          {{- $probePort = .Values.faults.probePortMismatch.probePort }}
           {{- end }}
-          {{- with .Values.readinessProbe }}
           readinessProbe:
             httpGet:
-              path: /
-              port: http
+              path: {{ .Values.probes.path | quote }}
+              port: {{ $probePort }}
+            initialDelaySeconds: {{ .Values.probes.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
+
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.path | quote }}
+              port: {{ $probePort }}
+            initialDelaySeconds: {{ add .Values.probes.initialDelaySeconds 5 }}
+            periodSeconds: {{ .Values.probes.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.failureThreshold }}
           {{- end }}
-          {{- with .Values.resources }}
+
           resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-          {{- with .Values.volumeMounts }}
-          volumeMounts:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
-      {{- with .Values.volumes }}
-      volumes:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
+            {{- toYaml .Values.resources | nindent 12 }}
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.affinity }}
-      affinity:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       {{- with .Values.tolerations }}
       tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
