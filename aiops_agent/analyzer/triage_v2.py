@@ -260,6 +260,7 @@ def _detect_port_mismatch(ctx: IncidentContext):
     events = ((k8s.get("pod_events") or {}).get("probe_fail_samples") or [])
 
     container_ports = dep.get("container_ports") or []
+    container_port_values = [p.get("port") for p in container_ports if isinstance(p.get("port"), int)]
     l_probe = (dep.get("probes") or {}).get("liveness") or {}
     r_probe = (dep.get("probes") or {}).get("readiness") or {}
 
@@ -278,12 +279,16 @@ def _detect_port_mismatch(ctx: IncidentContext):
     mismatch_reasons = []
     if resolved_target is None and target_port is not None:
         mismatch_reasons.append(f"service.targetPort={target_port} cannot be resolved from container ports")
+    if resolved_target is not None and container_port_values and resolved_target not in container_port_values:
+        mismatch_reasons.append(
+            f"resolved_service_targetPort={resolved_target} not in containerPorts={container_port_values}"
+        )
     if resolved_target is not None and probe_ports and any(p != resolved_target for p in probe_ports if isinstance(p, int)):
         mismatch_reasons.append(f"probe.port={probe_ports} != resolved_service_targetPort={resolved_target}")
     if resolved_target is not None and eps and any(ep != resolved_target for ep in eps):
         mismatch_reasons.append(f"endpoints.ports={eps} != resolved_service_targetPort={resolved_target}")
 
-    if mismatch_reasons and (has_probe_fail or len(mismatch_reasons) >= 2):
+    if mismatch_reasons and (has_probe_fail or len(mismatch_reasons) >= 1):
         return {
             "hit": True,
             "reasons": mismatch_reasons,
@@ -387,8 +392,9 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
         ]
 
     pm = _detect_port_mismatch(ctx)
-    if pm.get("hit"):
-        suspected_category = "config"
+    pm_hit = bool(pm.get("hit"))
+    if pm_hit:
+        suspected_category = "port_mismatch"
         top_error_type = "port_mismatch"
         triage = "Detected port mismatch between Service targetPort / containerPort / probes, causing probe failures and connection refused."
         recs = [
@@ -405,7 +411,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
     # -------------------------
     # Specialization by log type
     # -------------------------
-    if top_error_type == "config":
+    if not pm_hit and top_error_type == "config":
         suspected_category = "config"
         triage = "Startup or request failures indicate missing or invalid configuration."
         recs = [
@@ -414,7 +420,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
             "Patch Deployment via GitOps to set missing env or mount configs",
         ]
 
-    elif top_error_type == "dependency":
+    elif not pm_hit and top_error_type == "dependency":
         suspected_category = "dependency"
         triage = "Logs indicate upstream dependency connectivity failures."
         recs = [
@@ -423,7 +429,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
             "Ensure readinessProbe depends on critical dependencies",
         ]
 
-    elif top_error_type == "memory":
+    elif not pm_hit and top_error_type == "memory":
         suspected_category = "memory"
         triage = "Logs suggest memory pressure or allocation issues."
         recs = [
