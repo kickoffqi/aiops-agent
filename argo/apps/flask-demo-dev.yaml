@@ -8,10 +8,11 @@ spec:
   source:
     repoURL: <YOUR_GIT_REPO_URL>
     targetRevision: main
-    path: apps/flask-demo/chart
+    path: app/flask-demo
     helm:
       valueFiles:
-        - ../envs/dev/values.yaml
+        - values.yaml
+        - envs/dev/values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: default
