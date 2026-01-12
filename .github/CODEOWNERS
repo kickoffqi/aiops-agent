@@ -1,0 +1,9 @@
+# High-risk areas: require platform/security owners
+/argo/**              @platform-team
+/aiops_agent/gitops/policy/**  @platform-team @security-team
+
+# App runtime/chart changes
+/charts/**            @platform-team
+
+# Default fallback
+*                    @platform-team
