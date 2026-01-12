@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: flask-demo-prod
-  namespace: default
+  namespace: prod
 spec:
   project: platform
   source:
@@ -15,7 +15,7 @@ spec:
         - envs/prod/values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: prod
+    namespace: argocd
   syncPolicy:
     automated:
       prune: true
