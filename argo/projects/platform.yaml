@@ -8,9 +8,11 @@ spec:
   sourceRepos:
     - https://github.com/kickoffqi/aiops-agent
   destinations:
-    - namespace: argocd
-      server: https://kubernetes.default.svc
     - namespace: default
+      server: https://kubernetes.default.svc
+    - namespace: dev
+      server: https://kubernetes.default.svc
+    - namespace: prod
       server: https://kubernetes.default.svc
   clusterResourceWhitelist:
     - group: "*"
