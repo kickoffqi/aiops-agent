@@ -4,11 +4,13 @@ set -euo pipefail
 SESSION="${SESSION:-aiops}"
 NS_MON="${NS_MON:-monitoring}"
 NS_APP="${NS_APP:-default}"
+NS_APP_DEV="${NS_APP_DEV:-dev}"
 
 SVC_PROM="${SVC_PROM:-kube-prometheus-stack-prometheus}"   # svc/<name>
 SVC_GRAF="${SVC_GRAF:-kube-prometheus-stack-grafana}"       # svc/<name>
 SVC_LOKI="${SVC_LOKI:-loki}"                                # svc/<name>
 SVC_APP="${SVC_APP:-flask-demo}"                            # svc/<name>
+SVC_APP_DEV="${SVC_APP_DEV:-flask-demo-dev}"                # svc/<name>
 
 PORT_PROM="${PORT_PROM:-9090}"
 PORT_GRAF="${PORT_GRAF:-3000}"
@@ -69,12 +71,12 @@ tmux send-keys -t "$P2" \
   "bash -lc 'echo \"[Loki] http://localhost:${PORT_LOKI}\"; ${KUBECTL} -n ${NS_MON} port-forward svc/${SVC_LOKI} ${PORT_LOKI}:3100; tmux kill-session -t ${SESSION}'" C-m
 
 tmux send-keys -t "$P3" \
-  "bash -lc 'echo \"[App] http://localhost:${PORT_APP}\"; ${KUBECTL} -n ${NS_APP} port-forward svc/${SVC_APP} ${PORT_APP}:8080; tmux kill-session -t ${SESSION}'" C-m
+  "bash -lc 'echo \"[App] http://localhost:${PORT_APP}\"; ${KUBECTL} -n ${NS_APP_DEV} port-forward svc/${SVC_APP} ${PORT_APP}:8080; tmux kill-session -t ${SESSION}'" C-m
 
-tmux send-keys -t "$P4" \
-  "bash -lc 'echo \"[App logs]\"; ${KUBECTL} -n ${NS_APP} logs -l app.kubernetes.io/instance=${SVC_APP} -f --tail=8080; tmux kill-session -t ${SESSION}'" C-m
+#tmux send-keys -t "$P4" \
+  "bash -lc 'echo \"[App logs]\"; ${KUBECTL} -n ${NS_APP_DEV} logs -l app.kubernetes.io/instance=${SVC_APP_DEV} -f --tail=8080; tmux kill-session -t ${SESSION}'" C-m
 
-tmux send-keys -t "$P5" \
+#tmux send-keys -t "$P5" \
   "bash -lc 'echo \"[AIOps] every 20s\"; watch -n 20 \"${UV} run aiops incident\"; tmux kill-session -t ${SESSION}'" C-m
 
 # 让布局更紧凑（你也可以换 main-vertical / main-horizontal）
