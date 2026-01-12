@@ -1,0 +1,32 @@
+version: 1
+guardrails:
+  max_replicas: 3
+  forbidden_paths:
+    - "/argo/"
+    - "/aiops_agent/gitops/policy/"
+  forbidden_changes:
+    - "image_tag_change"
+    - "rbac_change"
+    - "network_policy_change"
+    - "secret_change"
+
+risk_rules:
+  auto:
+    allowed_actions:
+      - "rollout_restart"
+      - "probe_tuning_small"
+      - "scale_up_small"
+    constraints:
+      scale_up_small:
+        max_delta: 1
+      probe_tuning_small:
+        max_timeout_delta_seconds: 1
+        max_initial_delay_delta_seconds: 5
+
+  manual:
+    triggers:
+      - "unknown_classification"
+      - "forbidden_change_detected"
+      - "path_protected"
+      - "large_scale_up"
+      - "security_related"
