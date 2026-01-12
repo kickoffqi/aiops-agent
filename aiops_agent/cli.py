@@ -9,6 +9,7 @@ from .report import print_report, save_json
 from .prometheus_client import PrometheusClient
 from .collector.prometheus_v2 import collect_namespace_health_v2
 from .collector.loki import collect_error_logs
+from .collector.k8s_inspect import inspect_k8s_ports
 from .analyzer.triage import triage_incident
 from .analyzer.triage_v2 import triage_incident_v2
 from .gitops.patches import generate_gitops_patches, dump_patches_yaml
@@ -77,6 +78,14 @@ def incident(
 
     # Correlate Prometheus + Loki signals
     correlate_prom_loki(ctx, settings, top_n=5); 
+
+    # K8s port/probe/endpoints inspection (for port mismatch detection)
+    try:
+        inspect_k8s_ports(ctx, settings)
+        ctx.summary["k8s_inspect_status"] = "ok"
+    except Exception as e:
+        ctx.summary["k8s_inspect_status"] = "error"
+        ctx.summary["k8s_inspect_error"] = str(e)
 
     # Analyze / triage
     triage_incident_v2(ctx); 

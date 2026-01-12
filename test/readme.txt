@@ -8,7 +8,13 @@
     curl -i "http://localhost:8080/cpu?seconds=0.8"
     curl -i "http://localhost:8080/mem?mb=200"
     curl -i "http://localhost:8080/slow"
-	4.	CrashLoop：通过环境变量 CRASH_ON_START=1 让容器启动后退出（模拟 CrashLoopBackOff）
+    4.  发现没有分类的 unknown 错误
+    curl -i "http://localhost:8080/unknown"
+
+
+
+    
+	5.	CrashLoop：通过环境变量 CRASH_ON_START=1 让容器启动后退出（模拟 CrashLoopBackOff）
         #Check Crash:
         kubectl -n default set env deploy/flask-demo CRASH_ON_START=1
         kubectl -n default rollout status deploy/flask-demo

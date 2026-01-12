@@ -14,7 +14,6 @@ class Settings(BaseModel):
     basic_pass: str | None = Field(default=None)
     ollama_url: str = Field(default="http://localhost:11434")
     ollama_model: str = Field(default="qwen2.5:7b-instruct")
-    llm_timeout: int = Field(default=60)
     enable_llm: bool = Field(default=True)
     ollama_timeout_s: int = Field(default=60, description="HTTP timeout seconds for Ollama requests")
 

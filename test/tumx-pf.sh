@@ -18,6 +18,8 @@ PORT_APP="${PORT_APP:-8080}"
 KUBECTL="${KUBECTL:-kubectl}"
 UV="${UV:-uv}"
 
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+
 if tmux has-session -t "$SESSION" 2>/dev/null; then
   echo "tmux session '$SESSION' already exists. Attaching..."
   tmux attach -t "$SESSION"
@@ -58,24 +60,28 @@ tmux select-pane -t "$P5" -T "AIOps watch"
 
 # --- 下发命令（严格按 pane_id） ---
 tmux send-keys -t "$P0" \
-  "echo '[Prometheus] http://localhost:${PORT_PROM}'; ${KUBECTL} -n ${NS_MON} port-forward svc/${SVC_PROM} ${PORT_PROM}:9090" C-m
+  "bash -lc 'echo \"[Prometheus] http://localhost:${PORT_PROM}\"; ${KUBECTL} -n ${NS_MON} port-forward svc/${SVC_PROM} ${PORT_PROM}:9090; tmux kill-session -t ${SESSION}'" C-m
 
 tmux send-keys -t "$P1" \
-  "echo '[Grafana] http://localhost:${PORT_GRAF}'; ${KUBECTL} -n ${NS_MON} port-forward svc/${SVC_GRAF} ${PORT_GRAF}:80" C-m
+  "bash -lc 'echo \"[Grafana] http://localhost:${PORT_GRAF}\"; ${KUBECTL} -n ${NS_MON} port-forward svc/${SVC_GRAF} ${PORT_GRAF}:80; tmux kill-session -t ${SESSION}'" C-m
 
 tmux send-keys -t "$P2" \
-  "echo '[Loki] http://localhost:${PORT_LOKI}'; ${KUBECTL} -n ${NS_MON} port-forward svc/${SVC_LOKI} ${PORT_LOKI}:3100" C-m
-
-tmux send-keys -t "$P4" \
-  "echo '[App] http://localhost:${PORT_APP}'; ${KUBECTL} -n ${NS_APP} port-forward svc/${SVC_APP} ${PORT_APP}:80" C-m
+  "bash -lc 'echo \"[Loki] http://localhost:${PORT_LOKI}\"; ${KUBECTL} -n ${NS_MON} port-forward svc/${SVC_LOKI} ${PORT_LOKI}:3100; tmux kill-session -t ${SESSION}'" C-m
 
 tmux send-keys -t "$P3" \
-  "echo '[App logs]'; ${KUBECTL} -n ${NS_APP} logs -l app=${SVC_APP} -f --tail=80" C-m
+  "bash -lc 'echo \"[App] http://localhost:${PORT_APP}\"; ${KUBECTL} -n ${NS_APP} port-forward svc/${SVC_APP} ${PORT_APP}:8080; tmux kill-session -t ${SESSION}'" C-m
+
+tmux send-keys -t "$P4" \
+  "bash -lc 'echo \"[App logs]\"; ${KUBECTL} -n ${NS_APP} logs -l app.kubernetes.io/instance=${SVC_APP} -f --tail=8080; tmux kill-session -t ${SESSION}'" C-m
 
 tmux send-keys -t "$P5" \
-  "echo '[AIOps] every 20s'; watch -n 20 '${UV} run aiops incident'" C-m
+  "bash -lc 'echo \"[AIOps] every 20s\"; watch -n 20 \"${UV} run aiops incident\"; tmux kill-session -t ${SESSION}'" C-m
 
 # 让布局更紧凑（你也可以换 main-vertical / main-horizontal）
 tmux select-layout -t "$SESSION:0" tiled
 
 tmux attach -t "$SESSION"
+
+#if ! tmux has-session -t "$SESSION" 2>/dev/null; then
+#  exec "$SCRIPT_PATH"
+#fi

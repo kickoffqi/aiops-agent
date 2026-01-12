@@ -114,7 +114,12 @@ def _extract_error_types_from_loki(ctx: IncidentContext, max_rows: int = 200) ->
             if isinstance(et, str) and et:
                 types.append(et)
                 continue
-
+        
+        # NEW: path-based override if present in raw text
+        if 'path":"/unknown"' in l or " /unknown" in l:
+            types.append("unknown")
+            continue
+        
         # 2) fallback heuristics（覆盖 gunicorn/crashloop）
         if "missing required_token" in l or "missing required_token env var" in l or "missing config" in l:
             types.append("config")
@@ -236,6 +241,66 @@ def _has_crashloop_signature(ctx: IncidentContext, max_rows: int = 50) -> bool:
             return True
     return False
 
+def _resolve_named_target_port(container_ports: list, target_port):
+    # targetPort 可能是 int 或 "http"
+    if isinstance(target_port, int):
+        return target_port
+    if isinstance(target_port, str):
+        for p in container_ports or []:
+            if p.get("name") == target_port and isinstance(p.get("port"), int):
+                return p["port"]
+    return None
+
+def _detect_port_mismatch(ctx: IncidentContext):
+    s = ctx.summary or {}
+    k8s = s.get("k8s") or {}
+    dep = k8s.get("deployment") or {}
+    svc = k8s.get("service") or {}
+    eps = (k8s.get("endpoints") or {}).get("ports") or []
+    events = ((k8s.get("pod_events") or {}).get("probe_fail_samples") or [])
+
+    container_ports = dep.get("container_ports") or []
+    container_port_values = [p.get("port") for p in container_ports if isinstance(p.get("port"), int)]
+    l_probe = (dep.get("probes") or {}).get("liveness") or {}
+    r_probe = (dep.get("probes") or {}).get("readiness") or {}
+
+    probe_ports = [l_probe.get("port"), r_probe.get("port")]
+    probe_ports = [p for p in probe_ports if p is not None]
+
+    target_port = svc.get("targetPort")
+    resolved_target = _resolve_named_target_port(container_ports, target_port)
+
+    # “强证据”：events 含连接拒绝/超时
+    has_probe_fail = any(("connect: connection refused" in (e.lower()))
+                         or ("context deadline exceeded" in (e.lower()))
+                         for e in events)
+
+    # 不一致判定
+    mismatch_reasons = []
+    if resolved_target is None and target_port is not None:
+        mismatch_reasons.append(f"service.targetPort={target_port} cannot be resolved from container ports")
+    if resolved_target is not None and container_port_values and resolved_target not in container_port_values:
+        mismatch_reasons.append(
+            f"resolved_service_targetPort={resolved_target} not in containerPorts={container_port_values}"
+        )
+    if resolved_target is not None and probe_ports and any(p != resolved_target for p in probe_ports if isinstance(p, int)):
+        mismatch_reasons.append(f"probe.port={probe_ports} != resolved_service_targetPort={resolved_target}")
+    if resolved_target is not None and eps and any(ep != resolved_target for ep in eps):
+        mismatch_reasons.append(f"endpoints.ports={eps} != resolved_service_targetPort={resolved_target}")
+
+    if mismatch_reasons and (has_probe_fail or len(mismatch_reasons) >= 1):
+        return {
+            "hit": True,
+            "reasons": mismatch_reasons,
+            "probe_fail_samples": events[:5],
+            "resolved_service_targetPort": resolved_target,
+            "container_ports": container_ports,
+            "probe_ports": probe_ports,
+            "service_targetPort": target_port,
+        }
+    return {"hit": False}
+
+
 # -------------------------
 # Main triage engine
 # -------------------------
@@ -326,10 +391,27 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
             "Rollback last deployment if recent change triggered the failure",
         ]
 
+    pm = _detect_port_mismatch(ctx)
+    pm_hit = bool(pm.get("hit"))
+    if pm_hit:
+        suspected_category = "port_mismatch"
+        top_error_type = "port_mismatch"
+        triage = "Detected port mismatch between Service targetPort / containerPort / probes, causing probe failures and connection refused."
+        recs = [
+            "Align containerPort with the actual application listening port",
+            "Ensure Service targetPort maps to the correct container port (int or correct named port)",
+            "Ensure liveness/readiness probes use the same port as the container listening port",
+        ]
+        confidence = "high"
+        severity = "high" if has_backoff else "medium"
+        severity_reason = "port_mismatch_probe_fail"
+        # 同时把证据挂到 summary 里，方便 llm_enrich / report.json audit
+        ctx.summary["port_mismatch_evidence"] = pm
+
     # -------------------------
     # Specialization by log type
     # -------------------------
-    if top_error_type == "config":
+    if not pm_hit and top_error_type == "config":
         suspected_category = "config"
         triage = "Startup or request failures indicate missing or invalid configuration."
         recs = [
@@ -338,7 +420,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
             "Patch Deployment via GitOps to set missing env or mount configs",
         ]
 
-    elif top_error_type == "dependency":
+    elif not pm_hit and top_error_type == "dependency":
         suspected_category = "dependency"
         triage = "Logs indicate upstream dependency connectivity failures."
         recs = [
@@ -347,7 +429,7 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
             "Ensure readinessProbe depends on critical dependencies",
         ]
 
-    elif top_error_type == "memory":
+    elif not pm_hit and top_error_type == "memory":
         suspected_category = "memory"
         triage = "Logs suggest memory pressure or allocation issues."
         recs = [
@@ -367,15 +449,25 @@ def triage_incident_v2(ctx: IncidentContext) -> Dict[str, Any]:
             ]
         
         else:
-            suspected_category = "no_signal_or_unknown"
-            triage = "No strong signals to classify incident; verify observability pipelines (Prometheus/Loki) and label selectors."
-            recs = [
-                "Verify Loki selector matches your workload labels (namespace/app/container)",
-                "Verify Prometheus is scraping kube-state-metrics and your targets",
-            ]
-
-        
-
+            # --- NEW: distinguish unknown types ---
+            if has_errors and (not is_restarting) and (not has_backoff):
+                suspected_category = "unknown"
+                triage = (
+                    "Application is emitting frequent error logs but there are no restart/crashloop signals. "
+                    "This often indicates handler/logic errors, bad requests, or non-fatal exceptions."
+                )
+                recs = [
+                    "Inspect recent error logs for stack traces / request path / error codes",
+                    "Check deployment env/config for recent changes (without exposing secrets)",
+                    "Correlate with HTTP 5xx rate / request volume if available",
+                ]
+            else:
+                suspected_category = "no_signal"
+                triage = "No strong signals (logs/metrics) to classify incident; verify observability pipelines and selectors."
+                recs = [
+                    "Verify Loki selector matches your workload labels (namespace/app/container)",
+                    "Verify Prometheus is scraping kube-state-metrics and your targets",
+                ]
 
     # -------------------------
     # Severity & Confidence (finalize once)

@@ -134,6 +134,21 @@ def slow():
 def metrics():
     return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
+@app.get("/unknown")
+def unknown():
+    start = time.time()
+    samples = [
+        "ERROR flask-demo unknown error",
+        "ERROR flask-demo request failed",
+        "ERROR flask-demo unexpected exception",
+        "ERROR flask-demo handler failed",
+        "ERROR flask-demo internal error",
+    ]
+    msg = samples[int(time.time()) % len(samples)]
+    log.error(msg)
+    _observe("/unknown", "500", start)
+    return "unknown error\n", 500
+
 
 # =========================
 # Entry point (for docker)

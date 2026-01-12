@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "flask-demo.fullname" . }}
+  labels:
+    {{- include "flask-demo.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "flask-demo.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      protocol: TCP
+      targetPort: {{ if .Values.faults.portMismatch.enabled }}{{ .Values.faults.portMismatch.serviceTargetPort }}{{ else }}http{{ end }}

@@ -19,6 +19,7 @@ aiops_agent/analyzer/triage.py
 aiops_agent/analyzer/triage_v2.py
 aiops_agent/analyzer/utlis.py
 aiops_agent/collector/__init__.py
+aiops_agent/collector/k8s_inspect.py
 aiops_agent/collector/loki.py
 aiops_agent/collector/prometheus.py
 aiops_agent/collector/prometheus_v2.py

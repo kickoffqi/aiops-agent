@@ -79,9 +79,14 @@ def _build_prompt(ctx: IncidentContext) -> str:
         "2) Provide 1-3 hypotheses with evidence strictly from the input.\n"
         "3) next_actions MUST be a subset of remediation.commands and remediation.verify; copy verbatim. Do not paraphrase.\n"
         "4) key_evidence MUST be a subset of evidence_pool; copy verbatim. Do not paraphrase.\n"
+        "5) If suspected_category is 'unknown' OR confidence is 'low', output suggested_classification with:\n"
+        "   - candidate in {config, dependency, crashloop, memory, app_bug, unknown}\n"
+        "   - why: evidence strings from input\n"
+        "   - missing_evidence_to_confirm: 3-5 concrete items to collect\n"
         "Export Schema:\n"
         "{\n"
         '  "llm_summary": {"root_cause": string, "key_evidence": [string], "next_actions": [string]},\n'
+        '  "suggested_classification": {"candidate": string, "confidence": "low"|"medium"|"high", "why":[string], "missing_evidence_to_confirm":[string]},\n'
         '  "risk_notes": [string],\n'
         '  "confidence": "low"|"medium"|"high"\n'
         "}\n"
