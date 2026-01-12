@@ -6,7 +6,7 @@ metadata:
 spec:
   project: platform
   source:
-    repoURL: <YOUR_GIT_REPO_URL>
+    repoURL: https://github.com/kickoffqi/aiops-agent
     targetRevision: main
     path: app/flask-demo
     helm:
