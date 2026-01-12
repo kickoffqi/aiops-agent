@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: flask-demo-dev
-  namespace: dev
+  namespace: argocd
 spec:
   project: platform
   source:
