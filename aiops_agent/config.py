@@ -16,6 +16,13 @@ class Settings(BaseModel):
     ollama_model: str = Field(default="qwen2.5:7b-instruct")
     enable_llm: bool = Field(default=True)
     ollama_timeout_s: int = Field(default=60, description="HTTP timeout seconds for Ollama requests")
+    argocd_server: str | None = Field(default="https://localhost:8081")
+    argocd_token: str | None = Field(default=None)
+    argocd_app_prod: str = Field(default="flask-demo-prod")
+    argocd_sync_timeout_s: int = Field(default=300)
+    argocd_poll_interval_s: int = Field(default=5)
+    argocd_verify_after_sync: bool = Field(default=True)
+    argocd_insecure: bool = Field(default=True)
 
 
 def load_settings() -> Settings:
@@ -36,4 +43,11 @@ def load_settings() -> Settings:
         llm_timeout=int(os.getenv("LLM_TIMEOUT", "60")),
         enable_llm=os.getenv("ENABLE_LLM", "true").lower() == "true",
         ollama_timeout_s=int(os.getenv("OLLAMA_TIMEOUT_S", "180")),
+        argocd_server=os.getenv("ARGOCD_SERVER", "https://localhost:8081"),
+        argocd_token=os.getenv("ARGOCD_TOKEN"),
+        argocd_app_prod=os.getenv("ARGOCD_APP_PROD", "flask-demo-prod"),
+        argocd_sync_timeout_s=int(os.getenv("ARGOCD_SYNC_TIMEOUT_S", "300")),
+        argocd_poll_interval_s=int(os.getenv("ARGOCD_POLL_INTERVAL_S", "5")),
+        argocd_verify_after_sync=os.getenv("ARGOCD_VERIFY_AFTER_SYNC", "true").lower() == "true",
+        argocd_insecure=os.getenv("ARGOCD_INSECURE", "true").lower() == "true",
     )
